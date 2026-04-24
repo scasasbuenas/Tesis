@@ -1,0 +1,743 @@
+% ============================================================================
+% TESIS DE PREGRADO — ArchIA
+% Universidad [COMPLETAR]
+% Autores: Santiago Casasbuenas, Juan Pablo [COMPLETAR], Manuel Gomez
+% Director: Darío [COMPLETAR]
+% Fecha: 2026
+% ============================================================================
+
+\documentclass[12pt, letterpaper, oneside]{article}
+
+% --- Codificación y lenguaje ---
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[spanish,es-tabla]{babel}
+
+% --- Geometría de página ---
+\usepackage[
+  letterpaper,
+  top=2.54cm,
+  bottom=2.54cm,
+  left=3cm,
+  right=2.54cm
+]{geometry}
+
+% --- Tipografía ---
+\usepackage{times}            % Fuente Times New Roman (estándar académico)
+\usepackage{setspace}
+\onehalfspacing               % Interlineado 1.5
+
+% --- Gráficos e imágenes ---
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{svg}
+\usepackage[font=small,labelfont=bf]{caption}
+\usepackage{subcaption}
+
+% --- Tablas ---
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{longtable}
+\usepackage{multirow}
+\usepackage{array}
+
+% --- Código fuente ---
+\usepackage{listings}
+\usepackage{xcolor}
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.97,0.97,0.97}
+
+\lstdefinestyle{codestyle}{
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{codepurple},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codegreen},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,
+    breaklines=true,
+    captionpos=b,
+    keepspaces=true,
+    numbers=left,
+    numbersep=5pt,
+    showspaces=false,
+    showstringspaces=false,
+    showtabs=false,
+    tabsize=2,
+    frame=single,
+    framerule=0.5pt,
+    rulecolor=\color{codegray}
+}
+\lstset{style=codestyle}
+
+% --- Matemáticas (por si se necesitan fórmulas de métricas) ---
+\usepackage{amsmath}
+
+% --- Referencias cruzadas e hipervínculos ---
+\usepackage[hidelinks]{hyperref}
+\usepackage[nameinlink]{cleveref}
+
+% --- Bibliografía ---
+\usepackage[
+  backend=biber,
+  style=ieee,
+  sorting=nyt,
+  maxbibnames=99
+]{biblatex}
+% \addbibresource{referencias.bib}  % DESCOMENTAR cuando exista el archivo .bib
+
+% --- Acrónimos ---
+\usepackage[acronym, toc]{glossaries}
+\makeglossaries
+
+\newacronym{asr}{ASR}{Architecture Significant Requirement}
+\newacronym{qas}{QAS}{Quality Attribute Scenario}
+\newacronym{add}{ADD}{Attribute-Driven Design}
+\newacronym{rag}{RAG}{Retrieval-Augmented Generation}
+\newacronym{llm}{LLM}{Large Language Model}
+\newacronym{iag}{IAG}{Inteligencia Artificial Generativa}
+\newacronym{slo}{SLO}{Service Level Objective}
+\newacronym{sla}{SLA}{Service Level Agreement}
+
+% --- Encabezados y pies de página ---
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\leftmark}
+\fancyhead[R]{\small ArchIA}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% --- Profundidad de numeración ---
+\setcounter{secnumdepth}{4}
+\setcounter{tocdepth}{3}
+
+% --- Comandos personalizados ---
+\newcommand{\archia}{\textsc{ArchIA}}
+\newcommand{\addtres}{ADD~3.0}
+\newcommand{\TODO}[1]{\textcolor{red}{\textbf{[TODO: #1]}}}
+
+% ============================================================================
+\begin{document}
+
+% ============================================================================
+% PORTADA
+% ============================================================================
+\begin{titlepage}
+\centering
+\vspace*{2cm}
+
+{\Large\bfseries Universidad [COMPLETAR]\par}
+\vspace{0.5cm}
+{\large Facultad de Ingeniería\par}
+{\large Programa de Ingeniería de Sistemas\par}
+
+\vspace{3cm}
+
+{\LARGE\bfseries ArchIA: Herramienta basada en inteligencia artificial generativa para la asistencia en la formalización de drivers arquitectónicos siguiendo Attribute-Driven Design 3.0\par}
+
+\vspace{3cm}
+
+{\large
+Santiago Casasbuenas Alarcón\\
+Juan Pablo [COMPLETAR]\\
+Manuel Gomez [COMPLETAR]\par}
+
+\vspace{2cm}
+
+{\large Director: [COMPLETAR]\par}
+{\large Co-director: [COMPLETAR]\par}
+
+\vfill
+
+{\large Bogotá, Colombia\\2026\par}
+\end{titlepage}
+
+% ============================================================================
+% PÁGINAS PRELIMINARES
+% ============================================================================
+\pagenumbering{roman}
+
+% --- Tabla de contenido ---
+\tableofcontents
+\newpage
+
+% --- Lista de figuras ---
+\listoffigures
+\newpage
+
+% --- Lista de tablas ---
+\listoftables
+\newpage
+
+% --- Lista de acrónimos ---
+\printglossary[type=\acronymtype, title=Lista de Acrónimos]
+\newpage
+
+% ============================================================================
+% CUERPO DEL DOCUMENTO
+% ============================================================================
+\pagenumbering{arabic}
+
+% ============================================================================
+\section{Introducción}
+\label{sec:introduccion}
+% ============================================================================
+
+% GUÍA: 2-3 páginas. Estructura recomendada:
+%   1. Contexto general: la arquitectura de software como disciplina y su importancia
+%   2. El problema: la brecha de formalización entre requisitos informales y drivers formales
+%   3. La propuesta: ArchIA como herramienta de asistencia
+%   4. Contribución: qué demuestra esta tesis
+%   5. Estructura del documento: breve descripción de cada sección
+
+\TODO{Escribir introducción — ver guía arriba}
+
+
+% ============================================================================
+\section{Agradecimientos}
+\label{sec:agradecimientos}
+% ============================================================================
+
+\TODO{Escribir agradecimientos personales}
+
+
+% ============================================================================
+\section{Marco Teórico}
+\label{sec:marco-teorico}
+% ============================================================================
+
+% GUÍA: Esta sección establece las bases conceptuales. Cada subsección debe:
+%   - Definir el concepto con precisión
+%   - Explicar su relevancia para el proyecto
+%   - Citar fuentes académicas reconocidas
+% Extensión total estimada: 12-15 páginas
+
+% ----------------------------------------------------------------------------
+\subsection{Inteligencia Artificial Generativa (IAG)}
+\label{subsec:iag}
+% ----------------------------------------------------------------------------
+
+% GUÍA: 2-3 páginas
+%   - Definición de IA generativa vs. discriminativa
+%   - Evolución: GPT, BERT, Transformers
+%   - Capacidades relevantes: generación de texto estructurado, comprensión de contexto
+%   - Limitaciones conocidas: alucinaciones, sesgos, ventana de contexto
+%   - Conexión con el proyecto: por qué IAG es viable para asistencia arquitectónica
+
+\TODO{Escribir subsección IAG}
+
+
+% ----------------------------------------------------------------------------
+\subsection{Modelos de Lenguaje de Gran Escala (LLM)}
+\label{subsec:llm}
+% ----------------------------------------------------------------------------
+
+% GUÍA: 2-3 páginas
+%   - Arquitectura Transformer (atención, tokenización)
+%   - Modelos relevantes: GPT-4, Gemini (los que usa ArchIA)
+%   - Capacidades de razonamiento y generación estructurada
+%   - Fine-tuning vs. prompting vs. in-context learning
+%   - Temperature, tokens, y cómo afectan la salida
+
+\TODO{Escribir subsección LLM}
+
+
+% ----------------------------------------------------------------------------
+\subsection{Sistemas Multi-Agente}
+\label{subsec:multi-agente}
+% ----------------------------------------------------------------------------
+
+% GUÍA: 2-3 páginas
+%   - Definición de agente inteligente (Wooldridge, Russell & Norvig)
+%   - Sistemas multi-agente: orquestación, delegación, especialización
+%   - Patrón supervisor-worker
+%   - LangGraph como framework de orquestación de agentes LLM
+%   - Conexión: por qué un solo LLM no es suficiente y se necesitan agentes especializados
+
+\TODO{Escribir subsección multi-agente}
+
+
+% ----------------------------------------------------------------------------
+\subsection{Recuperación Aumentada con Generación (RAG)}
+\label{subsec:rag}
+% ----------------------------------------------------------------------------
+
+% GUÍA: 2-3 páginas
+%   - Problema: alucinaciones y falta de grounding en LLMs
+%   - Solución RAG: retrieval + generation (Lewis et al., 2020)
+%   - Pipeline: chunking → embeddings → vector store → retrieval → augmented prompt
+%   - Bases de datos vectoriales (ChromaDB)
+%   - Métricas de similitud (coseno)
+%   - Conexión: grounding de respuestas en literatura de arquitectura (Bass, Clements, Kazman)
+
+\TODO{Escribir subsección RAG}
+
+
+% ----------------------------------------------------------------------------
+\subsection{Memoria Persistente en Sistemas Conversacionales}
+\label{subsec:memoria}
+% ----------------------------------------------------------------------------
+
+% GUÍA: 1-2 páginas
+%   - Problema: ventana de contexto limitada en LLMs
+%   - Tipos de memoria: corto plazo (buffer), largo plazo (resumen, vectorial)
+%   - Checkpointing y persistencia de estado conversacional
+%   - Conexión: cómo ArchIA mantiene el estado del flujo ADD entre turnos
+%     (current_asr, selected_style, tactics_list, memory_text)
+
+\TODO{Escribir subsección memoria}
+
+
+% ----------------------------------------------------------------------------
+\subsection{Arquitectura de Software y Attribute-Driven Design 3.0 (ADD 3.0)}
+\label{subsec:add3}
+% ----------------------------------------------------------------------------
+
+% GUÍA: 3-4 páginas — SECCIÓN CRÍTICA
+%   - Definición de arquitectura de software (Bass, Clements, Kazman)
+%   - Rol del arquitecto: decisiones, trade-offs, documentación
+%   - Atributos de calidad: disponibilidad, rendimiento, escalabilidad, seguridad, etc.
+%   - Quality Attribute Scenarios (QAS): estructura de 6 partes
+%     (Source, Stimulus, Environment, Artifact, Response, Response Measure)
+%   - ADD 3.0: método iterativo del SEI/CMU
+%     - Paso 1: Revisar entradas (drivers, restricciones, concerns)
+%     - Paso 2: Establecer objetivo de la iteración
+%     - Paso 3: Elegir elemento del sistema a descomponer
+%     - Paso 4: Elegir concepto de diseño (estilos, patrones)
+%     - Paso 5: Instanciar elementos arquitectónicos
+%     - Paso 6: Definir interfaces
+%     - Paso 7: Verificar y refinar
+%   - Alcance de ArchIA dentro de ADD: pasos 1-4 (formalización de drivers,
+%     selección de estilo y tácticas) — NO cubre instanciación ni refinamiento completo
+%   - Estilos arquitectónicos: definición, catálogo (capas, microservicios, pipes-and-filters, etc.)
+%   - Tácticas de diseño: definición, categorías por atributo de calidad
+%   - Conexión explícita: ArchIA asiste en la transición de requisitos informales
+%     a drivers formales dentro de los pasos iniciales de ADD
+
+\TODO{Escribir subsección ADD 3.0}
+
+
+% ============================================================================
+\section{Problema}
+\label{sec:problema}
+% ============================================================================
+
+% GUÍA: 2-3 páginas
+%   - Observación: existe una brecha entre lo que el arquitecto "sabe" informalmente
+%     y la expresión estructurada de drivers según ADD 3.0
+%   - Evidencia del problema:
+%     - La formalización es manual, lenta, depende de experiencia
+%     - Errores frecuentes: confundir atributos (escalabilidad vs. disponibilidad),
+%       meter tácticas en el ASR, inventar ASRs a mitad del proceso
+%       (citar feedback de Darío y los arquitectos de Pragma)
+%     - No existen herramientas que asistan en esta formalización
+%   - Pregunta de investigación:
+%     "¿Es posible que un sistema de agentes de IA especializados, respaldado por
+%     recuperación de conocimiento arquitectónico, asista al arquitecto de software
+%     en la formalización de drivers arquitectónicos durante las fases iniciales de ADD 3.0?"
+
+\TODO{Escribir planteamiento del problema}
+
+
+% ============================================================================
+\section{Objetivos}
+\label{sec:objetivos}
+% ============================================================================
+
+% ----------------------------------------------------------------------------
+\subsection{Objetivo General}
+\label{subsec:objetivo-general}
+% ----------------------------------------------------------------------------
+
+% GUÍA: Un solo objetivo, alineado con la tesis:
+%   "Diseñar, implementar y validar ArchIA, una herramienta conversacional basada en
+%   agentes de IA especializados y recuperación de conocimiento, que asista al arquitecto
+%   de software en la formalización de drivers arquitectónicos (ASRs, estilos y tácticas)
+%   durante las fases iniciales de Attribute-Driven Design 3.0."
+
+\TODO{Redactar objetivo general}
+
+
+% ----------------------------------------------------------------------------
+\subsection{Objetivos Específicos}
+\label{subsec:objetivos-especificos}
+% ----------------------------------------------------------------------------
+
+% GUÍA: 4-5 objetivos medibles y verificables. Propuesta:
+%   1. Diseñar un sistema de agentes especializados que implemente las fases iniciales
+%      de ADD 3.0 (ASR → Estilo → Tácticas) mediante orquestación con LangGraph.
+%   2. Implementar un mecanismo de RAG sobre literatura reconocida de arquitectura de
+%      software para fundamentar las recomendaciones generadas.
+%   3. Desarrollar una interfaz conversacional que guíe al arquitecto a través del
+%      proceso de formalización de forma iterativa y paso a paso.
+%   4. Validar la calidad de los artefactos generados (ASRs, estilos, tácticas) mediante
+%      evaluación con arquitectos profesionales de la industria (Pragma).
+%   5. Documentar las limitaciones y oportunidades de mejora del sistema como base
+%      para trabajo futuro.
+
+\TODO{Redactar objetivos específicos}
+
+
+% ============================================================================
+\section{Antecedentes}
+\label{sec:antecedentes}
+% ============================================================================
+
+% GUÍA: 3-4 páginas
+%   - Revisión de literatura: herramientas existentes de asistencia arquitectónica
+%   - Trabajos previos en IA aplicada a ingeniería de software
+%   - Herramientas de diseño asistido (no necesariamente IA):
+%     - Archimate, Structurizr, herramientas CASE
+%   - Trabajos de IA + arquitectura de software:
+%     - Investigar papers recientes sobre LLMs para diseño de sistemas
+%     - ChatGPT/Copilot como asistentes genéricos vs. herramienta especializada
+%   - Gap identificado: ninguna herramienta combina agentes especializados + RAG + ADD 3.0
+%   - Tabla comparativa de herramientas existentes vs. ArchIA
+
+\TODO{Escribir antecedentes y estado del arte}
+
+
+% ============================================================================
+\section{Definición de Problemática y Alcance del Proyecto}
+\label{sec:alcance}
+% ============================================================================
+
+% GUÍA: 2-3 páginas — SECCIÓN CRÍTICA para la narrativa
+%   - Retomar el problema y acotarlo con precisión
+%   - Definir ENTRADAS del sistema:
+%     1. Descripción informal del sistema (lenguaje natural)
+%     2. Atributo de calidad prioritario (explícito o inferido)
+%     3. Contexto de negocio (opcional)
+%     4. Documento PDF (modo DOC-ONLY)
+%   - Definir SALIDAS del sistema:
+%     1. ASR formal (QAS de 6 partes con métricas medibles)
+%     2. Recomendación de estilo arquitectónico (2 candidatos + impacto + recomendación)
+%     3. 3 tácticas de diseño (rationale, trade-offs, probabilidad de éxito, trazabilidad)
+%     4. Diagrama de alto nivel (complementario, Graphviz → SVG)
+%   - Alcance metodológico: pasos 1-4 de ADD 3.0 (NO instanciación ni refinamiento)
+%   - Alcance funcional: asistencia, no autonomía — el arquitecto valida y decide
+%   - Lo que NO es ArchIA: no reemplaza al arquitecto, no cubre ADD completo,
+%     no es una plataforma SaaS, no valida automáticamente
+
+\TODO{Escribir definición de alcance}
+
+
+% ============================================================================
+\section{Limitaciones del Proyecto}
+\label{sec:limitaciones}
+% ============================================================================
+
+% GUÍA: 1-2 páginas
+%   - Limitaciones técnicas:
+%     - Dependencia de LLMs externos (OpenAI, Vertex AI) — latencia, costo, disponibilidad
+%     - Ventana de contexto limitada
+%     - Tiempos de respuesta (aún no superan barrera del minuto consistentemente)
+%   - Limitaciones metodológicas:
+%     - Validación con muestra pequeña de arquitectos (Pragma)
+%     - No se realizaron pruebas de usuario a gran escala
+%     - El RAG está limitado a los documentos cargados en ChromaDB
+%   - Limitaciones de alcance:
+%     - No cubre iteraciones completas de ADD 3.0
+%     - No implementa guards automáticos de contexto (mencionado por Darío)
+%     - El backend multi-tenant (NestJS) no está integrado con el core
+%     - No se implementó carga masiva de carpetas de contexto
+
+\TODO{Escribir limitaciones}
+
+
+% ============================================================================
+\section{Diseño e Implementación}
+\label{sec:diseno}
+% ============================================================================
+
+% GUÍA GENERAL: 15-20 páginas. Esta es la sección más extensa y técnica.
+% Debe demostrar rigor en las decisiones de diseño.
+
+% ----------------------------------------------------------------------------
+\subsection{Arquitectura General del Sistema}
+\label{subsec:arquitectura-general}
+% ----------------------------------------------------------------------------
+
+% GUÍA: 2-3 páginas
+%   - Diagrama de arquitectura de alto nivel (3 componentes):
+%     Frontend (React) ↔ Backend Core (FastAPI + LangGraph) ↔ RAG (ChromaDB)
+%   - Stack tecnológico completo con justificación de cada elección
+%   - Tabla: Componente | Tecnología | Justificación
+%   - Flujo general de un mensaje (end-to-end)
+
+\TODO{Escribir arquitectura general}
+
+
+% ----------------------------------------------------------------------------
+\subsection{Backend}
+\label{subsec:backend}
+% ----------------------------------------------------------------------------
+
+% GUÍA: 4-5 páginas
+%   - FastAPI: estructura de endpoints, manejo de sesiones
+%   - Integración con LLMs (LangChain, factory de modelos)
+%   - Sistema de RAG:
+%     - Pipeline de ingestión (PDFs → chunks → embeddings → ChromaDB)
+%     - Estrategia de retrieval (queries múltiples, deduplicación)
+%     - Trazabilidad de fuentes (rag_trace)
+%   - Persistencia: SQLite checkpointer, feedback DB
+%   - Manejo de archivos: imágenes, PDFs subidos por el usuario
+%   - Código relevante con explicaciones (fragmentos, no archivos completos)
+
+\TODO{Escribir sección backend}
+
+
+% ----------------------------------------------------------------------------
+\subsection{Frontend}
+\label{subsec:frontend}
+% ----------------------------------------------------------------------------
+
+% GUÍA: 3-4 páginas
+%   - React + Vite: justificación de la elección
+%   - Patrón Atomic Design: átomos, moléculas, organismos
+%   - Diseño de la interfaz conversacional (ChatView)
+%   - Componentes clave:
+%     - MessageInput (texto + carga de archivos)
+%     - BubbleMessage (renderizado de respuestas con Markdown)
+%     - DiagramViewer (SVG + exportación)
+%     - Sidebar (gestión de sesiones)
+%   - Sistema de diseño: tokens CSS, tipografía, paleta
+%   - Estado: useChatManager hook, persistencia en localStorage
+%   - Capturas de pantalla de la interfaz
+
+\TODO{Escribir sección frontend}
+
+
+% ----------------------------------------------------------------------------
+\subsection{Diseño Anterior del Grafo}
+\label{subsec:grafo-anterior}
+% ----------------------------------------------------------------------------
+
+% GUÍA: 2-3 páginas
+%   - Primera versión del grafo de agentes
+%   - Diagrama del flujo original
+%   - Problemas identificados:
+%     - No seguía el orden de ADD 3.0
+%     - Respuestas demasiado largas (todo junto)
+%     - No había separación clara entre ASR, estilo y tácticas
+%     - Tácticas salían demasiado rápido
+%   - Feedback de Darío que motivó el rediseño:
+%     - "Tácticas salen demasiado rápido"
+%     - "ASR no debe decirme cómo quiero solucionar el problema"
+%     - "Debe haber coherencia entre estilo y táctica"
+%   - Lecciones aprendidas que informaron el rediseño
+
+\TODO{Escribir evolución del grafo — versión anterior}
+
+
+% ----------------------------------------------------------------------------
+\subsection{Diseño Final del Grafo}
+\label{subsec:grafo-final}
+% ----------------------------------------------------------------------------
+
+% GUÍA: 3-4 páginas — SECCIÓN CRÍTICA
+%   - Diagrama del StateGraph actual (LangGraph)
+%   - Flujo: Boot → Classifier → Supervisor → [Router] → Workers → Unifier → END
+%   - Nodos especializados (uno por uno):
+%     - classifier: detección de idioma e intención
+%     - supervisor: enrutamiento inteligente + scheduler multi-intent
+%     - asr_node: generación de QAS de 6 partes
+%     - style_node: recomendación de 2 estilos + análisis de impacto
+%     - tactics_node: selección de TOP-3 tácticas con JSON estructurado
+%     - diagram_node: generación de Graphviz DOT → SVG
+%     - investigator: RAG sobre literatura
+%     - evaluator: comparación y crítica de propuestas
+%     - unifier: consolidación de respuesta final
+%   - GraphState: campos clave y cómo fluye la información entre nodos
+%   - Mecanismo de dependencias: ASR debe existir antes de Style, Style antes de Tactics
+%   - Modo DOC-ONLY: cómo funciona y por qué existe
+%   - System prompts: diseño de los prompts de cada nodo (fragmentos relevantes)
+
+\TODO{Escribir diseño final del grafo}
+
+
+% ============================================================================
+\section{Descripción de la Herramienta}
+\label{sec:descripcion-herramienta}
+% ============================================================================
+
+% GUÍA: 3-4 páginas
+%   - Walkthrough completo de un caso de uso típico, con capturas de pantalla:
+%     1. El usuario describe un sistema informalmente
+%     2. ArchIA genera un ASR formal
+%     3. El usuario pide un estilo → ArchIA recomienda 2 candidatos
+%     4. El usuario pide tácticas → ArchIA selecciona TOP-3
+%     5. El usuario pide un diagrama → ArchIA genera SVG
+%   - Características adicionales:
+%     - Soporte bilingüe (español/inglés)
+%     - Carga de PDFs y modo DOC-ONLY
+%     - Exportación de diagramas (SVG, DOT, DrawIO)
+%     - Sistema de feedback (thumbs up/down)
+%     - Gestión de sesiones
+%   - Tabla resumen de funcionalidades implementadas
+
+\TODO{Escribir descripción de la herramienta con walkthrough}
+
+
+% ============================================================================
+\section{Resultados}
+\label{sec:resultados}
+% ============================================================================
+
+% GUÍA: 5-7 páginas — SECCIÓN CRÍTICA
+%   - Metodología de evaluación:
+%     - Criterios: corrección estructural del ASR, pertinencia del estilo,
+%       trazabilidad de tácticas, utilidad percibida por arquitectos
+%   - Casos de prueba ejecutados:
+%     - Caso 1: Sistema e-commerce con requisito de latencia
+%     - Caso 2: API pública con requisito de escalabilidad
+%     - Caso 3: Sistema bancario con requisito de disponibilidad
+%     - (definir 3-5 casos representativos)
+%   - Para cada caso mostrar:
+%     - Entrada del usuario (descripción informal)
+%     - ASR generado (completo, 6 partes)
+%     - Estilo recomendado (2 candidatos + justificación)
+%     - Tácticas seleccionadas (TOP-3 con rationale)
+%     - Diagrama generado (si aplica)
+%   - Evaluación por arquitectos de Pragma:
+%     - Quiénes evaluaron (roles, experiencia)
+%     - Criterios de evaluación
+%     - Resultados (cualitativos o cuantitativos)
+%     - Feedback recibido
+%   - Análisis de resultados:
+%     - ¿Los ASRs cumplen la estructura de 6 partes?
+%     - ¿Las métricas (Response Measure) son realistas?
+%     - ¿Los estilos son pertinentes para el atributo de calidad?
+%     - ¿Las tácticas son trazables al ASR?
+%     - ¿El RAG aporta referencias verificables?
+
+\TODO{Escribir resultados}
+
+
+% ============================================================================
+\section{Pruebas}
+\label{sec:pruebas}
+% ============================================================================
+
+% GUÍA: 3-4 páginas
+%   - Pruebas funcionales:
+%     - Tabla: Caso | Entrada | Salida esperada | Salida obtenida | Resultado
+%   - Pruebas de rendimiento:
+%     - Tiempos de respuesta por nodo (ASR, Style, Tactics, Diagram)
+%     - Tiempo total end-to-end
+%   - Pruebas de RAG:
+%     - Relevancia de los documentos recuperados
+%     - Trazabilidad de fuentes en las respuestas
+%   - Pruebas de modo DOC-ONLY:
+%     - Verificar que no usa conocimiento externo al documento
+%   - Pruebas de edge cases:
+%     - Entrada ambigua o incompleta
+%     - Atributos de calidad no estándar
+%     - Solicitud de tácticas sin ASR previo (¿el sistema genera el ASR primero?)
+
+\TODO{Escribir pruebas}
+
+
+% ============================================================================
+\section{Conclusiones}
+\label{sec:conclusiones}
+% ============================================================================
+
+% GUÍA: 2-3 páginas
+%   - Retomar la pregunta de investigación y responderla con evidencia
+%   - Resumen de la contribución:
+%     "Se demostró que un sistema de agentes especializados, orquestados por fases
+%     de ADD 3.0 y respaldados por RAG sobre literatura reconocida, puede asistir
+%     en la formalización de drivers arquitectónicos — transformando requisitos
+%     informales en ASRs estructurados, estilos evaluados y tácticas trazables."
+%   - Reflexión sobre los objetivos: cuáles se cumplieron, en qué medida
+%   - Valor práctico: utilidad demostrada con arquitectos de Pragma
+%   - Contribución al conocimiento: qué aporta al campo
+%   - Lecciones aprendidas (técnicas y metodológicas)
+
+\TODO{Escribir conclusiones}
+
+
+% ============================================================================
+\section{Trabajo Futuro}
+\label{sec:trabajo-futuro}
+% ============================================================================
+
+% GUÍA: 1-2 páginas
+%   - Guards de contexto: validar que el usuario proporcione suficiente información
+%     antes de generar respuestas (recomendación de Darío)
+%   - Iteraciones completas de ADD 3.0: cubrir pasos 5-7 (instanciación, interfaces, refinamiento)
+%   - Carga masiva de contexto: carpetas de proyecto completas como entrada
+%   - Integración del backend multi-tenant (NestJS): plataforma SaaS con gestión
+%     de proyectos, usuarios y preferencias
+%   - Evaluación a mayor escala: más arquitectos, más dominios, métricas cuantitativas
+%   - Mejora de tiempos de respuesta: optimización de prompts, caching, paralelismo
+%   - Streaming de respuestas: experiencia de usuario más fluida
+%   - Validación automática de ASRs: verificar coherencia y completitud sin intervención humana
+
+\TODO{Escribir trabajo futuro}
+
+
+% ============================================================================
+% ANEXOS
+% ============================================================================
+\newpage
+\appendix
+
+\section{Anexo A: System Prompts Principales}
+\label{sec:anexo-prompts}
+
+% GUÍA: Incluir los prompts completos de los nodos principales
+%   - Prompt del nodo ASR
+%   - Prompt del nodo Style
+%   - Prompt del nodo Tactics
+%   - Prompt del nodo Diagram (DOT)
+%   - Prompt del Supervisor
+
+\TODO{Incluir system prompts}
+
+
+\section{Anexo B: Ejemplo Completo de Ejecución}
+\label{sec:anexo-ejemplo}
+
+% GUÍA: Un caso de uso completo con todas las entradas y salidas textuales
+
+\TODO{Incluir ejemplo completo}
+
+
+\section{Anexo C: Documentación Técnica Complementaria}
+\label{sec:anexo-tecnico}
+
+% GUÍA: Diagramas de base de datos, diagramas de secuencia, etc.
+
+\TODO{Incluir documentación técnica}
+
+
+% ============================================================================
+% REFERENCIAS
+% ============================================================================
+\newpage
+% \printbibliography[title=Referencias]  % DESCOMENTAR cuando exista referencias.bib
+
+% Placeholder temporal — eliminar cuando se use biblatex
+\section*{Referencias}
+\label{sec:referencias}
+
+\TODO{Migrar referencias a archivo .bib y usar biblatex}
+
+% Referencias clave a incluir:
+% - Bass, L., Clements, P., & Kazman, R. (2021). Software Architecture in Practice (4th ed.). Addison-Wesley.
+% - Cervantes, H., & Kazman, R. (2016). Designing Software Architectures: A Practical Approach. Addison-Wesley.
+% - Lewis, P., et al. (2020). Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks. NeurIPS.
+% - Wooldridge, M. (2009). An Introduction to MultiAgent Systems (2nd ed.). Wiley.
+% - Russell, S., & Norvig, P. (2020). Artificial Intelligence: A Modern Approach (4th ed.). Pearson.
+% - Vaswani, A., et al. (2017). Attention Is All You Need. NeurIPS.
+% - LangGraph documentation: https://langchain-ai.github.io/langgraph/
+% - ChromaDB documentation: https://docs.trychroma.com/
+
+
+\end{document}
