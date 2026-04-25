@@ -30,7 +30,7 @@
 % --- Gráficos e imágenes ---
 \usepackage{graphicx}
 \usepackage{float}
-\usepackage{svg}
+% \usepackage{svg}  % REQUIERE Inkscape — descomentar cuando esté instalado
 \usepackage[font=small,labelfont=bf]{caption}
 \usepackage{subcaption}
 
@@ -81,26 +81,27 @@
 \usepackage[nameinlink]{cleveref}
 
 % --- Bibliografía ---
-\usepackage[
-  backend=biber,
-  style=ieee,
-  sorting=nyt,
-  maxbibnames=99
-]{biblatex}
-% \addbibresource{referencias.bib}  % DESCOMENTAR cuando exista el archivo .bib
+% TODO: Descomentar cuando exista referencias.bib y biber esté instalado
+% \usepackage[
+%   backend=biber,
+%   style=ieee,
+%   sorting=nyt,
+%   maxbibnames=99
+% ]{biblatex}
+% \addbibresource{referencias.bib}
 
 % --- Acrónimos ---
-\usepackage[acronym, toc]{glossaries}
-\makeglossaries
-
-\newacronym{asr}{ASR}{Architecture Significant Requirement}
-\newacronym{qas}{QAS}{Quality Attribute Scenario}
-\newacronym{add}{ADD}{Attribute-Driven Design}
-\newacronym{rag}{RAG}{Retrieval-Augmented Generation}
-\newacronym{llm}{LLM}{Large Language Model}
-\newacronym{iag}{IAG}{Inteligencia Artificial Generativa}
-\newacronym{slo}{SLO}{Service Level Objective}
-\newacronym{sla}{SLA}{Service Level Agreement}
+% TODO: Descomentar cuando se instale makeglossaries
+% \usepackage[acronym, toc]{glossaries}
+% \makeglossaries
+% \newacronym{asr}{ASR}{Architecture Significant Requirement}
+% \newacronym{qas}{QAS}{Quality Attribute Scenario}
+% \newacronym{add}{ADD}{Attribute-Driven Design}
+% \newacronym{rag}{RAG}{Retrieval-Augmented Generation}
+% \newacronym{llm}{LLM}{Large Language Model}
+% \newacronym{iag}{IAG}{Inteligencia Artificial Generativa}
+% \newacronym{slo}{SLO}{Service Level Objective}
+% \newacronym{sla}{SLA}{Service Level Agreement}
 
 % --- Encabezados y pies de página ---
 \usepackage{fancyhdr}
@@ -130,26 +131,22 @@
 \centering
 \vspace*{2cm}
 
-{\Large\bfseries Universidad [COMPLETAR]\par}
-\vspace{0.5cm}
-{\large Facultad de Ingeniería\par}
-{\large Programa de Ingeniería de Sistemas\par}
+\includegraphics[width=0.8\textwidth]{logo_uninandes.png}
 
-\vspace{3cm}
+\vspace{1.5cm}
 
 {\LARGE\bfseries ArchIA: Herramienta basada en inteligencia artificial generativa para la asistencia en la formalización de drivers arquitectónicos siguiendo Attribute-Driven Design 3.0\par}
 
 \vspace{3cm}
 
 {\large
-Santiago Casasbuenas Alarcón\\
-Juan Pablo [COMPLETAR]\\
-Manuel Gomez [COMPLETAR]\par}
+Santiago Casasbuenas\\
+Juan Pablo Castro\\
+Manuel Gomez\par}
 
 \vspace{2cm}
 
-{\large Director: [COMPLETAR]\par}
-{\large Co-director: [COMPLETAR]\par}
+{\large Director: Dario Correal\par}
 
 \vfill
 
@@ -174,7 +171,7 @@ Manuel Gomez [COMPLETAR]\par}
 \newpage
 
 % --- Lista de acrónimos ---
-\printglossary[type=\acronymtype, title=Lista de Acrónimos]
+% \printglossary[type=\acronymtype, title=Lista de Acrónimos]  % Descomentar con glossaries
 \newpage
 
 % ============================================================================
@@ -721,7 +718,7 @@ Manuel Gomez [COMPLETAR]\par}
 % REFERENCIAS
 % ============================================================================
 \newpage
-% \printbibliography[title=Referencias]  % DESCOMENTAR cuando exista referencias.bib
+% \printbibliography[title=Referencias]  % Descomentar con biblatex
 
 % Placeholder temporal — eliminar cuando se use biblatex
 \section*{Referencias}
