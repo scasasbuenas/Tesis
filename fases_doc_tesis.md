@@ -189,3 +189,78 @@ Semana 3: Diseño + Casos ─────→ Resultados (semana 4)
 3. **Compilar LaTeX cada 2-3 días.** No esperar al final para descubrir errores de compilación.
 4. **No escribir más de lo necesario.** Si una sección se pasa de las páginas estimadas, probablemente está incluyendo contenido que no aporta al argumento central.
 5. **Los \TODO{} del esqueleto son la guía.** Cada tarea consiste en reemplazar un \TODO{} con contenido real siguiendo las instrucciones en los comentarios LaTeX.
+
+---
+
+## Registro de avance
+
+### Sesión del 6 de mayo de 2026
+
+**Contexto:** sesión de trabajo con asistente IA para definir el alcance, crear el esqueleto y escribir las primeras secciones técnicas del documento.
+
+#### Decisiones tomadas
+
+1. **Argumento fundamental definido:** "Un sistema de agentes de IA especializados, orquestados por fases de ADD 3.0 y respaldados por RAG sobre literatura reconocida, puede asistir al arquitecto de software en la formalización de drivers arquitectónicos."
+2. **Alcance acotado:** ArchIA cubre los pasos 1-4 de ADD 3.0 (ASR, estilo, tácticas). No se presenta como plataforma SaaS ni como herramienta de ADD completo.
+3. **Entradas y salidas formalizadas:** se definieron con precisión las 4 entradas (descripción informal, atributo de calidad, contexto de negocio, PDF) y las 4 salidas (ASR formal, estilo recomendado, 3 tácticas, diagrama complementario).
+
+#### Archivos creados
+
+| Archivo | Descripción |
+|---------|-------------|
+| `tesis.tex` | Esqueleto completo del documento LaTeX con todas las secciones, paquetes y guías en comentarios |
+| `fases_doc_tesis.md` | Este archivo — plan de 4 semanas |
+| `.gitignore` | Ignora la carpeta `build/` de compilación LaTeX |
+
+#### Secciones escritas en `tesis.tex`
+
+| Sección | Estado | Páginas aprox. | Fuente principal |
+|---------|--------|:-:|---|
+| Diseño Anterior del Grafo | **Escrita** | ~2 | `archia_resumen_consolidado.md` §2 |
+| Backend (modularización, RAG indexado, optimizaciones) | **Escrita** | ~4 | §3, §6, §9 del resumen |
+| Diseño Final del Grafo (flujo, nodos, multi-intent, QA routing, Ledger, supersession) | **Escrita** | ~4 | §3, §4, §7, §10-11 del resumen |
+| Trabajo Futuro | **Escrita** | ~2 | §13 del resumen |
+
+#### Fragmentos de código citados en el documento
+
+Cada listing incluye el path relativo del archivo y las líneas exactas verificadas contra el estado actual del repositorio.
+
+| Listing | Archivo | Líneas | Contenido |
+|---------|---------|--------|-----------|
+| `lst:estructura-graph` | `back/src/graph/` | — | Árbol de directorios del paquete modularizado |
+| `lst:tag-chunk` | `back/build_vectorstore.py` | 44-70 | Algoritmo de auto-tagging de chunks |
+| `lst:indexed-retriever` | `back/src/graph/nodes/tactics/common.py` | 52-56 | Retriever con filtros de metadata |
+| `lst:rag-parallel` | `back/src/graph/nodes/styles/common.py` | 48-63 | Paralelización RAG con ThreadPoolExecutor |
+| `lst:lru-cache` | `back/src/graph/nodes/classifier.py` | 81-83 | Decorador @lru_cache en clasificador |
+| `lst:render-async` | `back/src/services/diagram_render.py` | 254-290 | Renderizado async de Graphviz con caché |
+| `lst:workflow-wiring` | `back/src/graph/workflow.py` | 182-203 | Cableado de nodos y edges del grafo |
+| `lst:multi-intent-state` | `back/src/graph/state.py` | 152-154 | Campos de planificación multi-intent |
+| `lst:qa-dynamic` | `back/src/graph/workflow.py` | 162-169 | Registro dinámico de nodos por QA |
+| `lst:decision-type` | `back/src/ledger/types.py` | 43-58 | Estructura Decision del Design Ledger |
+
+#### Secciones pendientes (con \TODO{} en el esqueleto)
+
+| Sección | Semana planeada | Notas |
+|---------|:---:|---|
+| Introducción | 2 | Escribir después de Problema y Alcance |
+| Marco Teórico (6 subsecciones) | 1 | Requiere redacción académica original |
+| Problema | 2 | Pregunta de investigación ya definida en los comentarios |
+| Objetivos | 2 | General y específicos ya propuestos en los comentarios |
+| Antecedentes | 1 | Requiere revisión de literatura + tabla comparativa |
+| Alcance | 2 | Tablas de E/S ya definidas conceptualmente |
+| Limitaciones | 2 | Puntos ya listados en los comentarios |
+| Arquitectura General | 3 | Diagrama de alto nivel + tabla de stack |
+| Frontend | 3 | Requiere capturas de pantalla de la interfaz |
+| Descripción de la Herramienta | 3 | Walkthrough con caso TravelHub del resumen §12 |
+| Resultados | 4 | Casos de prueba + evaluación con arquitectos |
+| Pruebas | 4 | Tablas de pruebas funcionales y rendimiento |
+| Conclusiones | 4 | Retomar pregunta de investigación con evidencia |
+| Agradecimientos | 4 | Personal |
+| Anexos | 4 | Prompts completos, ejemplo de ejecución |
+
+#### Configuración del entorno
+
+- **LaTeX:** MacTeX instalado via `brew install --cask mactex`
+- **Editor:** VS Code + extensión LaTeX Workshop
+- **Build output:** configurado a `%DIR%/build` para mantener la raíz limpia
+- **Git:** `.gitignore` con `build/` para excluir artefactos de compilación

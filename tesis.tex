@@ -77,7 +77,10 @@
 \usepackage{amsmath}
 
 % --- Referencias cruzadas e hipervínculos ---
-\usepackage[hidelinks]{hyperref}
+% `hypertexnames=false` evita anchors duplicados cuando la numeración de páginas
+% se reinicia entre portada, preliminares y cuerpo.
+\usepackage[hidelinks,hypertexnames=false]{hyperref}
+\usepackage{bookmark}
 \usepackage[nameinlink]{cleveref}
 
 % --- Bibliografía ---
@@ -580,7 +583,7 @@ tácticas de escalabilidad:
 \begin{lstlisting}[language=Python,
   caption={Retriever indexado con filtros de metadata},
   label={lst:indexed-retriever}]
-# Archivo: back/src/graph/nodes/tactics/common.py (lineas 51-55)
+# Archivo: back/src/graph/nodes/tactics/common.py (lineas 52-56)
 _retriever = get_indexed_retriever(
     quality_attribute=normalize_qa(resolved_index or qa),
     content_type="tacticas",
@@ -654,8 +657,8 @@ pero se ejecutaban en un bucle secuencial. Se reemplazó el bucle por un
 \begin{lstlisting}[language=Python,
   caption={Paralelización de queries RAG con \texttt{ThreadPoolExecutor}},
   label={lst:rag-parallel},
-  firstnumber=47]
-# Archivo: back/src/graph/nodes/styles/common.py (lineas 47-62)
+  firstnumber=48]
+# Archivo: back/src/graph/nodes/styles/common.py (lineas 48-63)
 with ThreadPoolExecutor(max_workers=len(queries)) as executor:
     futures = {executor.submit(_retriever.invoke, q): q
                for q in queries}
@@ -674,7 +677,7 @@ with ThreadPoolExecutor(max_workers=len(queries)) as executor:
             pass
 \end{lstlisting}
 
-El mismo patrón se aplicó en \texttt{tactics/common.py} (líneas 58--72).
+El mismo patrón se aplicó en \texttt{tactics/common.py} (líneas 59--74).
 Reducción estimada: 60--70\% del tiempo de RAG por nodo.
 
 \paragraph{P4 --- Caché LRU para funciones determinísticas.}
@@ -685,17 +688,17 @@ resultados se re-calculaban en cada turno. Se decoraron con
 \begin{lstlisting}[language=Python,
   caption={Caché LRU en el clasificador},
   label={lst:lru-cache},
-  firstnumber=18]
-# Archivo: back/src/graph/nodes/classifier.py (lineas 18-20)
+  firstnumber=81]
+# Archivo: back/src/graph/nodes/classifier.py (lineas 81-83)
 @lru_cache(maxsize=256)
 def _classify_cached(msg: str, qa_opts_str: str) -> tuple:
     """Cached by (msg, qa_opts_str). temperature=0."""
 \end{lstlisting}
 
 Las funciones cacheadas incluyen: \texttt{\_classify\_cached} y
-\texttt{\_resolve\_qa\_cached} en \texttt{classifier.py},
-\texttt{\_fetch\_styles\_rag} en \texttt{styles/common.py} (línea 28), y
-\texttt{\_fetch\_tactics\_rag} en \texttt{tactics/common.py} (línea 41).
+\texttt{\_resolve\_qa\_cached} en \texttt{classifier.py} (línea 100),
+\texttt{\_fetch\_styles\_rag} en \texttt{styles/common.py} (línea 29), y
+\texttt{\_fetch\_tactics\_rag} en \texttt{tactics/common.py} (línea 42).
 
 Adicionalmente, se separaron las instrucciones estáticas del prompt
 (\texttt{SystemMessage}) del contenido dinámico (\texttt{HumanMessage}) para
@@ -794,20 +797,23 @@ que motivaron el rediseño.
 
 En la versión inicial, el flujo de procesamiento de un mensaje seguía la ruta:
 
+% To change the size of this line, wrap it with a font size command such as
+% \small, \footnotesize, \large, etc. Example: {\small ... } or {\large ... }
 \begin{center}
+{
+\fontsize{10}{11}\selectfont
 \texttt{START} $\rightarrow$ \texttt{boot} $\rightarrow$ \texttt{classifier}
 $\rightarrow$ \texttt{supervisor} $\rightarrow$ \texttt{router}
 $\rightarrow$ \emph{agente especializado} $\rightarrow$ \texttt{unifier}
 $\rightarrow$ \texttt{END}
+}
 \end{center}
 
 Los agentes especializados disponibles eran: \texttt{investigator} (consultas RAG),
 \texttt{creator}, \texttt{evaluator}, \texttt{diagram\_agent}, \texttt{asr},
 \texttt{style}, \texttt{tactics} y \texttt{unifier}. El router aplicaba reglas
 de ``visitar una vez'' para evitar ciclos, y los nodos de ASR, estilo y tácticas
-pasaban directamente al unifier sin regresar al supervisor.
-
-El sistema de diagramas en esta versión generaba código Mermaid que se renderizaba
+pasaban directamente al unifier sin regresar al supervisor. El sistema de diagramas en esta versión generaba código Mermaid que se renderizaba
 en el frontend con una librería JavaScript, sin validación del lado del servidor.
 
 \subsubsection{Diagnóstico: fortalezas y debilidades}
@@ -817,9 +823,10 @@ identificaron las siguientes fortalezas y debilidades:
 
 \begin{table}[H]
 \centering
+\fontsize{10}{11}\selectfont
 \caption{Diagnóstico del estado inicial de \archia{}}
 \label{tab:diagnostico-inicial}
-\begin{tabularx}{\textwidth}{lX}
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
 \toprule
 \textbf{Fortalezas} & \textbf{Debilidades} \\
 \midrule
@@ -854,7 +861,8 @@ en un solo prompt (ASR + estilos + tácticas), el sistema generaba una respuesta
 
 \item \textbf{Generación no solicitada de diagramas.} El sistema a veces producía
 diagramas cuando el usuario no los había pedido, debido a una detección de
-intención demasiado permisiva.
+intención demasiado permisiva. Adicionalmente, la herramienta no contaba con un
+mecanismo para graficar el código de Mermaid, por lo que la respuesta final era un bloque de código sin renderizar.
 
 \item \textbf{Pérdida de idioma.} El idioma de respuesta podía cambiar de español
 a inglés entre turnos, ya que cada nodo detectaba el idioma independientemente.
@@ -934,10 +942,8 @@ de consolidar la respuesta. El cableado se define en \texttt{workflow.py}:
 \begin{lstlisting}[language=Python,
   caption={Cableado del grafo en \texttt{workflow.py} (extracto)},
   label={lst:workflow-wiring},
-  firstnumber=114]
-# Archivo: back/src/graph/workflow.py (lineas 114-139)
-builder.add_node("boot", boot_node)
-builder.add_node("context_loader", context_loader_node)
+  firstnumber=182]
+# Archivo: back/src/graph/workflow.py (lineas 182-203)
 builder.add_edge(START, "boot")
 builder.add_edge("boot", "context_loader")
 builder.add_edge("context_loader", "classifier")
@@ -949,9 +955,9 @@ builder.add_edge("evaluator", "supervisor")
 builder.add_edge("asr", "supervisor")
 builder.add_edge("style", "supervisor")
 builder.add_edge("tactics", "supervisor")
+builder.add_edge("style_tactics_parallel", "supervisor")
 # ...
 builder.add_edge("unifier", END)
-graph = builder.compile(checkpointer=sqlite_saver)
 \end{lstlisting}
 
 \subsubsection{Nodos especializados}
@@ -960,7 +966,7 @@ graph = builder.compile(checkpointer=sqlite_saver)
 El sistema cuenta con los siguientes nodos, cada uno implementado como una función
 que recibe y retorna un \texttt{GraphState}:
 
-\paragraph{Classifier} (\texttt{nodes/classifier.py}, líneas 43--110).
+\paragraph{Classifier} (\texttt{nodes/classifier.py}, líneas 106--228).
 Detecta el idioma (\texttt{es}/\texttt{en}), la intención del usuario
 (\texttt{asr}, \texttt{style}, \texttt{tactics}, \texttt{diagram}, etc.) y el
 atributo de calidad relevante. Utiliza el LLM con \texttt{temperature=0} para
@@ -968,7 +974,7 @@ garantizar determinismo, y el resultado se cachea con \texttt{@lru\_cache}. La
 detección de intención combina clasificación LLM con heurísticas de keywords
 para mayor robustez.
 
-\paragraph{Supervisor} (\texttt{nodes/supervisor.py}, líneas 147--252).
+\paragraph{Supervisor} (\texttt{nodes/supervisor.py}, líneas 167--280).
 Es el orquestador central. Determina qué nodo ejecutar a continuación basándose
 en la intención detectada, los nodos ya visitados y los nodos pendientes. Incluye
 el scheduler multi-intent descrito en la \Cref{sssec:multi-intent}.
@@ -1023,15 +1029,15 @@ multi-intent en el supervisor. Se añadieron tres campos al \texttt{GraphState}:
 \begin{lstlisting}[language=Python,
   caption={Campos de planificación multi-intent en \texttt{GraphState}},
   label={lst:multi-intent-state},
-  firstnumber=132]
-# Archivo: back/src/graph/state.py (lineas 132-135)
+  firstnumber=152]
+# Archivo: back/src/graph/state.py (lineas 152-154)
 requested_nodes: list   # nodos solicitados en este turno
 pending_nodes: list     # nodos aun por ejecutar
 completed_nodes: list   # nodos ya ejecutados
 \end{lstlisting}
 
 La función \texttt{\_infer\_requested\_nodes()} en \texttt{supervisor.py}
-(líneas 61--121) analiza el mensaje del usuario y construye un plan de ejecución
+(líneas 77--137) analiza el mensaje del usuario y construye un plan de ejecución
 ordenado. El supervisor respeta las dependencias: si se piden tácticas pero no
 existe un ASR, el sistema genera primero el ASR, luego ejecuta tácticas. Tras
 cada nodo, el supervisor verifica si quedan nodos pendientes antes de derivar al
@@ -1052,8 +1058,8 @@ en \texttt{workflow.py}:
 \begin{lstlisting}[language=Python,
   caption={Registro dinámico de nodos por atributo de calidad},
   label={lst:qa-dynamic},
-  firstnumber=104]
-# Archivo: back/src/graph/workflow.py (lineas 104-111)
+  firstnumber=162]
+# Archivo: back/src/graph/workflow.py (lineas 162-169)
 for qa_id in _SUPPORTED_QAS:
     style_name = style_node_name_for_qa(qa_id)
     tactics_name = tactics_node_name_for_qa(qa_id)
@@ -1065,7 +1071,7 @@ for qa_id in _SUPPORTED_QAS:
                          make_tactics_qa_node(qa_id))
 \end{lstlisting}
 
-El router (líneas 47--86 de \texttt{workflow.py}) traduce la intención lógica
+El router (líneas 102--144 de \texttt{workflow.py}) traduce la intención lógica
 (\texttt{style} o \texttt{tactics}) al nodo especializado correspondiente
 (\texttt{style\_latencia}, \texttt{tactics\_escalabilidad}, etc.). Si no existe
 un nodo específico para el atributo detectado, el sistema utiliza el nodo general
@@ -1097,7 +1103,7 @@ El Ledger se implementa en el paquete \texttt{ledger/} con cuatro módulos:
   caption={Estructura \texttt{Decision} del Design Ledger},
   label={lst:decision-type},
   firstnumber=43]
-# Archivo: back/src/ledger/types.py (lineas 43-59)
+# Archivo: back/src/ledger/types.py (lineas 43-58)
 class Decision(TypedDict):
     id: str
     kind: str          # "asr", "style", "tactics", "diagram"
