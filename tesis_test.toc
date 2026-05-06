@@ -1,0 +1,56 @@
+\babel@toc {english}{}\relax 
+\contentsline {section}{\numberline {1}Introducción}{1}{section.1}%
+\contentsline {section}{\numberline {2}Agradecimientos}{1}{section.2}%
+\contentsline {section}{\numberline {3}Marco Teórico}{1}{section.3}%
+\contentsline {subsection}{\numberline {3.1}Inteligencia Artificial Generativa (IAG)}{1}{subsection.3.1}%
+\contentsline {subsection}{\numberline {3.2}Modelos de Lenguaje de Gran Escala (LLM)}{1}{subsection.3.2}%
+\contentsline {subsection}{\numberline {3.3}Sistemas Multi-Agente}{1}{subsection.3.3}%
+\contentsline {subsection}{\numberline {3.4}Recuperación Aumentada con Generación (RAG)}{1}{subsection.3.4}%
+\contentsline {subsection}{\numberline {3.5}Memoria Persistente en Sistemas Conversacionales}{1}{subsection.3.5}%
+\contentsline {subsection}{\numberline {3.6}Arquitectura de Software y Attribute-Driven Design 3.0 (ADD 3.0)}{1}{subsection.3.6}%
+\contentsline {section}{\numberline {4}Problema}{1}{section.4}%
+\contentsline {section}{\numberline {5}Objetivos}{2}{section.5}%
+\contentsline {subsection}{\numberline {5.1}Objetivo General}{2}{subsection.5.1}%
+\contentsline {subsection}{\numberline {5.2}Objetivos Específicos}{2}{subsection.5.2}%
+\contentsline {section}{\numberline {6}Antecedentes}{2}{section.6}%
+\contentsline {section}{\numberline {7}Definición de Problemática y Alcance del Proyecto}{2}{section.7}%
+\contentsline {section}{\numberline {8}Limitaciones del Proyecto}{2}{section.8}%
+\contentsline {section}{\numberline {9}Diseño e Implementación}{2}{section.9}%
+\contentsline {subsection}{\numberline {9.1}Arquitectura General del Sistema}{2}{subsection.9.1}%
+\contentsline {subsection}{\numberline {9.2}Backend}{2}{subsection.9.2}%
+\contentsline {subsubsection}{\numberline {9.2.1}Modularización del código}{3}{subsubsection.9.2.1}%
+\contentsline {subsubsection}{\numberline {9.2.2}Sistema de RAG indexado por atributo de calidad}{3}{subsubsection.9.2.2}%
+\contentsline {subsubsection}{\numberline {9.2.3}Optimizaciones de rendimiento}{5}{subsubsection.9.2.3}%
+\contentsline {paragraph}{\numberline {9.2.3.1}P3 --- Paralelización de queries RAG.}{5}{paragraph.9.2.3.1}%
+\contentsline {paragraph}{\numberline {9.2.3.2}P4 --- Caché LRU para funciones determinísticas.}{6}{paragraph.9.2.3.2}%
+\contentsline {paragraph}{\numberline {9.2.3.3}P5 --- Renderizado asíncrono de Graphviz.}{7}{paragraph.9.2.3.3}%
+\contentsline {subsection}{\numberline {9.3}Frontend}{7}{subsection.9.3}%
+\contentsline {subsection}{\numberline {9.4}Diseño Anterior del Grafo}{7}{subsection.9.4}%
+\contentsline {subsubsection}{\numberline {9.4.1}Flujo original del sistema}{8}{subsubsection.9.4.1}%
+\contentsline {subsubsection}{\numberline {9.4.2}Diagnóstico: fortalezas y debilidades}{8}{subsubsection.9.4.2}%
+\contentsline {subsubsection}{\numberline {9.4.3}Problemas críticos de diseño}{8}{subsubsection.9.4.3}%
+\contentsline {subsubsection}{\numberline {9.4.4}Feedback del asesor que motivó el rediseño}{9}{subsubsection.9.4.4}%
+\contentsline {subsection}{\numberline {9.5}Diseño Final del Grafo}{9}{subsection.9.5}%
+\contentsline {subsubsection}{\numberline {9.5.1}Flujo actual del grafo}{10}{subsubsection.9.5.1}%
+\contentsline {subsubsection}{\numberline {9.5.2}Nodos especializados}{10}{subsubsection.9.5.2}%
+\contentsline {paragraph}{\numberline {9.5.2.1}Classifier}{10}{paragraph.9.5.2.1}%
+\contentsline {paragraph}{\numberline {9.5.2.2}Supervisor}{11}{paragraph.9.5.2.2}%
+\contentsline {paragraph}{\numberline {9.5.2.3}ASR}{11}{paragraph.9.5.2.3}%
+\contentsline {paragraph}{\numberline {9.5.2.4}Style}{11}{paragraph.9.5.2.4}%
+\contentsline {paragraph}{\numberline {9.5.2.5}Tactics}{11}{paragraph.9.5.2.5}%
+\contentsline {paragraph}{\numberline {9.5.2.6}Diagram}{11}{paragraph.9.5.2.6}%
+\contentsline {paragraph}{\numberline {9.5.2.7}Investigator}{11}{paragraph.9.5.2.7}%
+\contentsline {paragraph}{\numberline {9.5.2.8}Evaluator}{11}{paragraph.9.5.2.8}%
+\contentsline {paragraph}{\numberline {9.5.2.9}Unifier}{12}{paragraph.9.5.2.9}%
+\contentsline {subsubsection}{\numberline {9.5.3}Soporte multi-intent}{12}{subsubsection.9.5.3}%
+\contentsline {subsubsection}{\numberline {9.5.4}Enrutamiento dinámico por atributo de calidad}{12}{subsubsection.9.5.4}%
+\contentsline {subsubsection}{\numberline {9.5.5}Design Ledger: trazabilidad de decisiones}{13}{subsubsection.9.5.5}%
+\contentsline {subsubsection}{\numberline {9.5.6}ASR Write-back y Supersession}{14}{subsubsection.9.5.6}%
+\contentsline {section}{\numberline {10}Descripción de la Herramienta}{14}{section.10}%
+\contentsline {section}{\numberline {11}Resultados}{14}{section.11}%
+\contentsline {section}{\numberline {12}Pruebas}{14}{section.12}%
+\contentsline {section}{\numberline {13}Conclusiones}{14}{section.13}%
+\contentsline {section}{\numberline {14}Trabajo Futuro}{14}{section.14}%
+\contentsline {section}{\numberline {A}Anexo A: System Prompts Principales}{17}{appendix.A}%
+\contentsline {section}{\numberline {B}Anexo B: Ejemplo Completo de Ejecución}{17}{appendix.B}%
+\contentsline {section}{\numberline {C}Anexo C: Documentación Técnica Complementaria}{17}{appendix.C}%

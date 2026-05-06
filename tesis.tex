@@ -485,7 +485,262 @@ Manuel Gomez\par}
 %   - Manejo de archivos: imágenes, PDFs subidos por el usuario
 %   - Código relevante con explicaciones (fragmentos, no archivos completos)
 
-\TODO{Escribir sección backend}
+El backend de \archia{} está construido con FastAPI sobre Python y constituye el
+núcleo del sistema. Su responsabilidad principal es recibir los mensajes del
+usuario, orquestar la ejecución de los agentes especializados mediante LangGraph
+y devolver respuestas estructuradas al frontend. Esta subsección describe las tres
+dimensiones más relevantes: la modularización del código, el sistema de RAG indexado
+y las optimizaciones de rendimiento.
+
+\subsubsection{Modularización del código}
+\label{sssec:modularizacion}
+
+El archivo monolítico \texttt{graph.py} de la versión inicial se descompuso en un
+paquete con responsabilidades claramente separadas. El \Cref{lst:estructura-graph}
+muestra la estructura resultante.
+
+\begin{lstlisting}[language={}, caption={Estructura del paquete \texttt{graph/} tras la modularización}, label={lst:estructura-graph}]
+back/src/graph/
+
+  __init__.py
+  workflow.py       # Estructura del grafo (nodos, edges, compilacion)
+  state.py          # GraphState (TypedDict) + schemas de validacion
+  consts.py         # Prompts del sistema y esquemas de tacticas
+  utils.py          # Funciones auxiliares
+  resources.py      # Recursos compartidos (LLM, RAG, checkpointer)
+  qa_registry.py    # Registro central de atributos de calidad
+  index_resolver.py # Resolucion LLM del indice QA
+  nodes/            # Directorio de nodos especializados
+    supervisor.py    
+    classifier.py    
+    investigator.py
+    asr.py           
+    evaluator.py     
+    unifier.py
+    diagram.py       
+    context_loader.py
+    styles/          # Nodos de estilo por atributo de calidad
+    tactics/         # Nodos de tacticas por atributo de calidad
+\end{lstlisting}
+
+Cada nodo es una función pura que recibe un \texttt{GraphState} y retorna un
+\texttt{GraphState} modificado. Esta separación permite probar cada nodo
+aisladamente y agregar nuevos nodos sin modificar el cableado existente: basta
+con registrar el nodo en \texttt{workflow.py} y conectar sus edges.
+
+\subsubsection{Sistema de RAG indexado por atributo de calidad}
+\label{sssec:rag-indexado}
+
+La versión inicial del RAG utilizaba una sola colección de ChromaDB sin
+diferenciación temática. Esto significaba que una pregunta sobre tácticas de
+escalabilidad y una sobre latencia obtenían el mismo pool de documentos, reduciendo
+la precisión de las recomendaciones.
+
+Se implementó un sistema de RAG indexado con dos dimensiones de metadata por chunk:
+\texttt{quality\_attribute} (escalabilidad, latencia, disponibilidad, general) y
+\texttt{content\_type} (asr, estilos, tácticas, general). Estas etiquetas se
+asignan automáticamente durante la ingestión de PDFs mediante un algoritmo de
+auto-tagging basado en keywords.
+
+El \Cref{lst:tag-chunk} muestra el algoritmo de etiquetado implementado en
+\texttt{build\_vectorstore.py}.
+
+\begin{lstlisting}[language=Python,
+  caption={Algoritmo de auto-tagging de chunks (simplificado)},
+  label={lst:tag-chunk}]
+# Archivo: back/build_vectorstore.py (lineas 44-70)
+def _tag_chunk(text, config):
+    tokens = text.lower().split()
+    # Para cada QA en indices.json: contar matches de keywords
+    qa_scores = {}
+    for qa in config["quality_attributes"]:
+        score = sum(1 for kw in qa["keywords_en"] + qa["keywords_es"]
+                    if kw in tokens)
+        qa_scores[qa["id"]] = score
+    best_qa = max(qa_scores, key=qa_scores.get)
+    quality_attribute = best_qa if qa_scores[best_qa] > 0 else "general"
+    # Mismo proceso para content_type
+    ...
+    return {"quality_attribute": quality_attribute,
+            "content_type": content_type}
+\end{lstlisting}
+
+La resolución del atributo de calidad en tiempo de ejecución se realiza mediante
+inferencia LLM, no por keywords. El nodo \texttt{classifier} invoca la función
+\texttt{resolve\_quality\_attribute()}, implementada en
+\texttt{graph/index\_resolver.py} (líneas 28--74), que consulta al LLM con la
+lista de atributos disponibles cargada desde \texttt{config/indices.json}. Si el
+LLM no identifica un atributo específico, el sistema retorna \texttt{"general"}
+como fallback.
+
+El retriever diferenciado se obtiene mediante \texttt{get\_indexed\_retriever()},
+que aplica filtros de metadata sobre ChromaDB. Por ejemplo, para una solicitud de
+tácticas de escalabilidad:
+
+\begin{lstlisting}[language=Python,
+  caption={Retriever indexado con filtros de metadata},
+  label={lst:indexed-retriever}]
+# Archivo: back/src/graph/nodes/tactics/common.py (lineas 51-55)
+_retriever = get_indexed_retriever(
+    quality_attribute=normalize_qa(resolved_index or qa),
+    content_type="tacticas",
+    k=k,
+)
+\end{lstlisting}
+
+El corpus RAG contiene 658 chunks etiquetados provenientes de \emph{Software
+Architecture in Practice} y \emph{Evaluating Software Architecture}. La
+\Cref{tab:distribucion-chunks} muestra la distribución tras la optimización de
+keywords.
+
+\begin{table}[H]
+\centering
+\caption{Distribución de chunks en el vectorstore por tipo de contenido}
+\label{tab:distribucion-chunks}
+\begin{tabular}{lrr}
+\toprule
+\textbf{content\_type} & \textbf{Chunks} & \textbf{\% total} \\
+\midrule
+asr       & 391 & 59.4\% \\
+general   & 164 & 24.9\% \\
+tácticas  & 57  & 8.7\%  \\
+estilos   & 46  & 7.0\%  \\
+\midrule
+\textbf{Total} & \textbf{658} & \textbf{100\%} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Para añadir un nuevo atributo de calidad al sistema (por ejemplo, seguridad),
+basta con editar \texttt{config/indices.json} y reconstruir el vectorstore. No se
+requieren cambios de código: el resolver LLM detecta automáticamente los nuevos
+índices gracias a la configuración declarativa.
+
+\subsubsection{Optimizaciones de rendimiento}
+\label{sssec:optimizaciones}
+
+Los tiempos de respuesta iniciales del sistema eran inaceptables para uso
+interactivo: hasta 350 segundos en prompts multi-intent. Se realizó un diagnóstico
+que identificó siete cuellos de botella, de los cuales se resolvieron cuatro
+durante el semestre. La \Cref{tab:bottlenecks} resume los problemas y su estado.
+
+\begin{table}[H]
+\centering
+\caption{Cuellos de botella identificados y estado de resolución}
+\label{tab:bottlenecks}
+\small
+\begin{tabularx}{\textwidth}{clXcc}
+\toprule
+\textbf{Prior.} & \textbf{Problema} & \textbf{Impacto} & \textbf{Dificultad} & \textbf{Estado} \\
+\midrule
+P1 & Llamadas LLM secuenciales & 60--70\% de latencia total & Media & Pendiente \\
+P2 & Sin streaming al cliente & Latencia percibida alta & Baja & Pendiente \\
+P3 & RAG queries secuenciales & 15--20\% de latencia & Baja & Resuelto \\
+P4 & Sin caché & 40--60\% cómputo redundante & Media & Resuelto \\
+P5 & Graphviz bloqueante & 5--15~s en diagramas & Baja & Resuelto \\
+P6 & Un solo worker Uvicorn & Concurrencia bloqueada & Muy baja & Pendiente \\
+P7 & State/prompt sin límite & Degradación progresiva & Baja & Pendiente \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\paragraph{P3 --- Paralelización de queries RAG.}
+Las búsquedas vectoriales en ChromaDB eran completamente independientes entre sí,
+pero se ejecutaban en un bucle secuencial. Se reemplazó el bucle por un
+\texttt{ThreadPoolExecutor} que ejecuta todas las queries en paralelo. Se eligió
+\texttt{ThreadPoolExecutor} en lugar de \texttt{asyncio.gather} porque el método
+\texttt{invoke()} del retriever de LangChain es síncrono.
+
+\begin{lstlisting}[language=Python,
+  caption={Paralelización de queries RAG con \texttt{ThreadPoolExecutor}},
+  label={lst:rag-parallel},
+  firstnumber=47]
+# Archivo: back/src/graph/nodes/styles/common.py (lineas 47-62)
+with ThreadPoolExecutor(max_workers=len(queries)) as executor:
+    futures = {executor.submit(_retriever.invoke, q): q
+               for q in queries}
+    for future in as_completed(futures):
+        try:
+            for d in future.result():
+                key = (d.metadata.get("source_path"),
+                       d.metadata.get("page"))
+                if key in seen:
+                    continue
+                seen.add(key)
+                gathered.append(d)
+                if len(gathered) >= 6:
+                    break
+        except Exception:
+            pass
+\end{lstlisting}
+
+El mismo patrón se aplicó en \texttt{tactics/common.py} (líneas 58--72).
+Reducción estimada: 60--70\% del tiempo de RAG por nodo.
+
+\paragraph{P4 --- Caché LRU para funciones determinísticas.}
+Se identificaron cuatro funciones determinísticas (\texttt{temperature=0}) cuyos
+resultados se re-calculaban en cada turno. Se decoraron con
+\texttt{@lru\_cache}:
+
+\begin{lstlisting}[language=Python,
+  caption={Caché LRU en el clasificador},
+  label={lst:lru-cache},
+  firstnumber=18]
+# Archivo: back/src/graph/nodes/classifier.py (lineas 18-20)
+@lru_cache(maxsize=256)
+def _classify_cached(msg: str, qa_opts_str: str) -> tuple:
+    """Cached by (msg, qa_opts_str). temperature=0."""
+\end{lstlisting}
+
+Las funciones cacheadas incluyen: \texttt{\_classify\_cached} y
+\texttt{\_resolve\_qa\_cached} en \texttt{classifier.py},
+\texttt{\_fetch\_styles\_rag} en \texttt{styles/common.py} (línea 28), y
+\texttt{\_fetch\_tactics\_rag} en \texttt{tactics/common.py} (línea 41).
+
+Adicionalmente, se separaron las instrucciones estáticas del prompt
+(\texttt{SystemMessage}) del contenido dinámico (\texttt{HumanMessage}) para
+habilitar el \emph{prompt caching} del proveedor LLM, que cachea automáticamente
+prefijos de prompt mayores a 1024 tokens.
+
+\paragraph{P5 --- Renderizado asíncrono de Graphviz.}
+El renderizado de diagramas usaba \texttt{subprocess.run()}, que bloqueaba el
+event loop de FastAPI durante 5--15 segundos. Se implementó una versión asíncrona
+con caché compartido:
+
+\begin{lstlisting}[language=Python,
+  caption={Renderizado asíncrono de Graphviz con caché},
+  label={lst:render-async},
+  firstnumber=254]
+# Archivo: back/src/services/diagram_render.py (lineas 254-290)
+async def render_svg_async(dot_string: str,
+                           engine: str = "dot") -> bytes:
+    key = hash((dot_string, engine))
+    if key in _SVG_CACHE:
+        return _SVG_CACHE[key]
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            engine, "-Tsvg",
+            stdin=asyncio.subprocess.PIPE,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        stdout, stderr = await asyncio.wait_for(
+            proc.communicate(
+                input=dot_string.encode("utf-8")),
+            timeout=30,
+        )
+        if proc.returncode == 0:
+            svg_bytes = stdout
+            _SVG_CACHE[key] = svg_bytes
+            return svg_bytes
+    except asyncio.TimeoutError:
+        log.warning("Graphviz async timed out, sync fallback")
+    return render_svg(dot_string, engine=engine)
+\end{lstlisting}
+
+El caché \texttt{\_SVG\_CACHE} (línea 196 del mismo archivo) es seguro sin TTL
+porque Graphviz es puramente funcional: el mismo DOT con el mismo motor siempre
+produce el mismo SVG.
 
 
 % ----------------------------------------------------------------------------
@@ -528,7 +783,104 @@ Manuel Gomez\par}
 %     - "Debe haber coherencia entre estilo y táctica"
 %   - Lecciones aprendidas que informaron el rediseño
 
-\TODO{Escribir evolución del grafo — versión anterior}
+El desarrollo de \archia{} no partió de cero: al inicio del semestre se heredó una
+primera versión funcional del sistema cuyo núcleo era un único archivo monolítico
+\texttt{graph.py} que contenía la definición del estado, los nodos, los prompts
+del sistema, las utilidades auxiliares y el cableado del grafo. Esta sección
+documenta el estado de esa versión, los problemas identificados y las lecciones
+que motivaron el rediseño.
+
+\subsubsection{Flujo original del sistema}
+
+En la versión inicial, el flujo de procesamiento de un mensaje seguía la ruta:
+
+\begin{center}
+\texttt{START} $\rightarrow$ \texttt{boot} $\rightarrow$ \texttt{classifier}
+$\rightarrow$ \texttt{supervisor} $\rightarrow$ \texttt{router}
+$\rightarrow$ \emph{agente especializado} $\rightarrow$ \texttt{unifier}
+$\rightarrow$ \texttt{END}
+\end{center}
+
+Los agentes especializados disponibles eran: \texttt{investigator} (consultas RAG),
+\texttt{creator}, \texttt{evaluator}, \texttt{diagram\_agent}, \texttt{asr},
+\texttt{style}, \texttt{tactics} y \texttt{unifier}. El router aplicaba reglas
+de ``visitar una vez'' para evitar ciclos, y los nodos de ASR, estilo y tácticas
+pasaban directamente al unifier sin regresar al supervisor.
+
+El sistema de diagramas en esta versión generaba código Mermaid que se renderizaba
+en el frontend con una librería JavaScript, sin validación del lado del servidor.
+
+\subsubsection{Diagnóstico: fortalezas y debilidades}
+
+Tras una revisión técnica realizada en la reunión de apertura del semestre, se
+identificaron las siguientes fortalezas y debilidades:
+
+\begin{table}[H]
+\centering
+\caption{Diagnóstico del estado inicial de \archia{}}
+\label{tab:diagnostico-inicial}
+\begin{tabularx}{\textwidth}{lX}
+\toprule
+\textbf{Fortalezas} & \textbf{Debilidades} \\
+\midrule
+Agentes especializados con roles claros &
+Alto acoplamiento: todo concentrado en \texttt{graph.py} \\
+Fundación del RAG implementada con ChromaDB &
+Documentación deficiente \\
+Arquitectura LangGraph funcional &
+Respuestas poco específicas al contexto del usuario \\
+Stack tecnológico coherente (FastAPI, React, LangChain) &
+Sin pruebas unitarias ni end-to-end \\
+Despliegue sencillo &
+Tiempos de respuesta elevados (hasta 350~s en ciertos prompts) \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsubsection{Problemas críticos de diseño}
+
+Más allá del acoplamiento del código, la versión inicial presentaba problemas
+funcionales que comprometían la utilidad de la herramienta:
+
+\begin{enumerate}
+\item \textbf{No seguía el orden de ADD 3.0.} Los nodos de ASR, estilo y tácticas
+operaban de forma independiente. No existía una cadena de dependencias que
+garantizara que el estilo se seleccionara con base en un ASR previo, o que las
+tácticas fueran coherentes con el estilo elegido.
+
+\item \textbf{Respuestas monolíticas.} Cuando el usuario solicitaba varias cosas
+en un solo prompt (ASR + estilos + tácticas), el sistema generaba una respuesta
+única que mezclaba todo o simplemente ignoraba parte de la solicitud.
+
+\item \textbf{Generación no solicitada de diagramas.} El sistema a veces producía
+diagramas cuando el usuario no los había pedido, debido a una detección de
+intención demasiado permisiva.
+
+\item \textbf{Pérdida de idioma.} El idioma de respuesta podía cambiar de español
+a inglés entre turnos, ya que cada nodo detectaba el idioma independientemente.
+\end{enumerate}
+
+\subsubsection{Feedback del asesor que motivó el rediseño}
+
+El asesor del proyecto identificó problemas adicionales de fondo relacionados con
+la metodología ADD 3.0:
+
+\begin{itemize}
+\item Las tácticas se generaban demasiado rápido, sin que el usuario hubiera
+definido primero un estilo arquitectónico.
+
+\item El ASR incluía información sobre cómo resolver el problema (tácticas
+dentro del escenario), cuando debería limitarse a describir el requisito.
+
+\item No existía coherencia forzada entre el estilo seleccionado y las tácticas
+propuestas: el sistema podía recomendar tácticas incompatibles con el estilo.
+
+\item Los ASRs se podían inventar a mitad del proceso, rompiendo la secuencia
+lógica de ADD 3.0.
+\end{itemize}
+
+Estas observaciones motivaron el rediseño completo del grafo que se describe en
+la \Cref{subsec:grafo-final}.
 
 
 % ----------------------------------------------------------------------------
@@ -554,7 +906,237 @@ Manuel Gomez\par}
 %   - Modo DOC-ONLY: cómo funciona y por qué existe
 %   - System prompts: diseño de los prompts de cada nodo (fragmentos relevantes)
 
-\TODO{Escribir diseño final del grafo}
+El rediseño del grafo abordó los problemas identificados en la
+\Cref{subsec:grafo-anterior} mediante cuatro intervenciones principales: un flujo
+que respeta el orden de ADD 3.0, soporte para multi-intent, enrutamiento dinámico
+por atributo de calidad y un mecanismo de trazabilidad de decisiones. Esta
+subsección describe cada intervención y su implementación.
+
+\subsubsection{Flujo actual del grafo}
+\label{sssec:flujo-actual}
+
+El flujo final del sistema sigue la ruta:
+
+\begin{center}
+\texttt{START} $\rightarrow$ \texttt{boot} $\rightarrow$
+\texttt{context\_loader} $\rightarrow$ \texttt{classifier}
+$\rightarrow$ \texttt{supervisor} $\rightarrow$ \texttt{router}
+$\rightarrow$ \emph{nodo especializado} $\rightarrow$
+\texttt{supervisor} $\rightarrow$ $\cdots$ $\rightarrow$
+\texttt{unifier} $\rightarrow$ \texttt{END}
+\end{center}
+
+La diferencia fundamental con la versión anterior es que los nodos especializados
+regresan al \texttt{supervisor} en lugar de ir directamente al \texttt{unifier}.
+Esto permite al supervisor evaluar si quedan nodos pendientes por ejecutar antes
+de consolidar la respuesta. El cableado se define en \texttt{workflow.py}:
+
+\begin{lstlisting}[language=Python,
+  caption={Cableado del grafo en \texttt{workflow.py} (extracto)},
+  label={lst:workflow-wiring},
+  firstnumber=114]
+# Archivo: back/src/graph/workflow.py (lineas 114-139)
+builder.add_node("boot", boot_node)
+builder.add_node("context_loader", context_loader_node)
+builder.add_edge(START, "boot")
+builder.add_edge("boot", "context_loader")
+builder.add_edge("context_loader", "classifier")
+builder.add_edge("classifier", "supervisor")
+builder.add_conditional_edges("supervisor", router)
+builder.add_edge("investigator", "supervisor")
+builder.add_edge("diagram_agent", "supervisor")
+builder.add_edge("evaluator", "supervisor")
+builder.add_edge("asr", "supervisor")
+builder.add_edge("style", "supervisor")
+builder.add_edge("tactics", "supervisor")
+# ...
+builder.add_edge("unifier", END)
+graph = builder.compile(checkpointer=sqlite_saver)
+\end{lstlisting}
+
+\subsubsection{Nodos especializados}
+\label{sssec:nodos}
+
+El sistema cuenta con los siguientes nodos, cada uno implementado como una función
+que recibe y retorna un \texttt{GraphState}:
+
+\paragraph{Classifier} (\texttt{nodes/classifier.py}, líneas 43--110).
+Detecta el idioma (\texttt{es}/\texttt{en}), la intención del usuario
+(\texttt{asr}, \texttt{style}, \texttt{tactics}, \texttt{diagram}, etc.) y el
+atributo de calidad relevante. Utiliza el LLM con \texttt{temperature=0} para
+garantizar determinismo, y el resultado se cachea con \texttt{@lru\_cache}. La
+detección de intención combina clasificación LLM con heurísticas de keywords
+para mayor robustez.
+
+\paragraph{Supervisor} (\texttt{nodes/supervisor.py}, líneas 147--252).
+Es el orquestador central. Determina qué nodo ejecutar a continuación basándose
+en la intención detectada, los nodos ya visitados y los nodos pendientes. Incluye
+el scheduler multi-intent descrito en la \Cref{sssec:multi-intent}.
+
+\paragraph{ASR} (\texttt{nodes/asr.py}, líneas 15--151).
+Genera un Quality Attribute Scenario completo con las seis partes canónicas
+de ADD 3.0: Source, Stimulus, Environment, Artifact, Response y Response Measure.
+El prompt fuerza métricas medibles (SLOs como p95, error rate, uptime) y
+prohibe incluir tácticas o estilos en el escenario. Opcionalmente consulta el
+RAG para fundamentar el escenario en literatura.
+
+\paragraph{Style} (\texttt{nodes/styles/}).
+Propone exactamente dos estilos arquitectónicos candidatos, evalúa el impacto de
+cada uno sobre el ASR activo y recomienda uno con justificación. La salida es un
+JSON estructurado con \texttt{style\_1}, \texttt{style\_2}, \texttt{best\_style}
+y \texttt{rationale}. El estilo recomendado se almacena en
+\texttt{state["selected\_style"]} para uso en nodos posteriores.
+
+\paragraph{Tactics} (\texttt{nodes/tactics/}).
+Selecciona exactamente tres tácticas de diseño que satisfagan el ASR dado el
+estilo seleccionado. Cada táctica incluye: nombre, rationale, consecuencias,
+probabilidad de éxito (0--1) y trazabilidad explícita al ASR. La salida
+incluye tanto Markdown (para el usuario) como JSON estructurado (para el estado).
+
+\paragraph{Diagram} (\texttt{nodes/diagram.py}).
+Orquesta la generación de diagramas en tres niveles: overview (5--15 nodos),
+detailed (todos los nodos) y focused (expansión de un grupo específico). El
+pipeline es: LLM genera código DOT $\rightarrow$ parseo a representación
+intermedia (\texttt{DiagramModel}) $\rightarrow$ simplificación programática si
+excede 20 nodos $\rightarrow$ renderizado a SVG vía Graphviz.
+
+\paragraph{Investigator} (\texttt{nodes/investigator.py}).
+Realiza consultas RAG sobre literatura de arquitectura. Se invoca cuando el
+usuario hace preguntas teóricas o cuando otro nodo necesita fundamentación
+bibliográfica.
+
+\paragraph{Evaluator} (\texttt{nodes/evaluator.py}).
+Analiza y critica ASRs o propuestas arquitectónicas. Evalúa corrección teórica,
+viabilidad práctica y alineación con los requisitos del usuario.
+
+\paragraph{Unifier} (\texttt{nodes/unifier.py}).
+Consolida las respuestas de todos los nodos ejecutados en el turno en un mensaje
+final coherente, incluyendo fuentes RAG y sugerencias de seguimiento.
+
+\subsubsection{Soporte multi-intent}
+\label{sssec:multi-intent}
+
+Para resolver el problema de solicitudes compuestas (por ejemplo, ``genera un ASR,
+recomienda estilos y selecciona tácticas''), se implementó un scheduler
+multi-intent en el supervisor. Se añadieron tres campos al \texttt{GraphState}:
+
+\begin{lstlisting}[language=Python,
+  caption={Campos de planificación multi-intent en \texttt{GraphState}},
+  label={lst:multi-intent-state},
+  firstnumber=132]
+# Archivo: back/src/graph/state.py (lineas 132-135)
+requested_nodes: list   # nodos solicitados en este turno
+pending_nodes: list     # nodos aun por ejecutar
+completed_nodes: list   # nodos ya ejecutados
+\end{lstlisting}
+
+La función \texttt{\_infer\_requested\_nodes()} en \texttt{supervisor.py}
+(líneas 61--121) analiza el mensaje del usuario y construye un plan de ejecución
+ordenado. El supervisor respeta las dependencias: si se piden tácticas pero no
+existe un ASR, el sistema genera primero el ASR, luego ejecuta tácticas. Tras
+cada nodo, el supervisor verifica si quedan nodos pendientes antes de derivar al
+unifier.
+
+\subsubsection{Enrutamiento dinámico por atributo de calidad}
+\label{sssec:enrutamiento-qa}
+
+Para permitir lógica diferenciada por atributo de calidad sin condicionales
+dispersos, se implementó un registro central de atributos y nodos especializados
+por QA.
+
+El módulo \texttt{qa\_registry.py} (líneas 57--146) expone funciones como
+\texttt{supported\_qas()}, \texttt{normalize\_qa()} y
+\texttt{style\_node\_name\_for\_qa()}. Los nodos se registran dinámicamente
+en \texttt{workflow.py}:
+
+\begin{lstlisting}[language=Python,
+  caption={Registro dinámico de nodos por atributo de calidad},
+  label={lst:qa-dynamic},
+  firstnumber=104]
+# Archivo: back/src/graph/workflow.py (lineas 104-111)
+for qa_id in _SUPPORTED_QAS:
+    style_name = style_node_name_for_qa(qa_id)
+    tactics_name = tactics_node_name_for_qa(qa_id)
+    if style_name != "style":
+        builder.add_node(style_name,
+                         make_style_qa_node(qa_id))
+    if tactics_name != "tactics":
+        builder.add_node(tactics_name,
+                         make_tactics_qa_node(qa_id))
+\end{lstlisting}
+
+El router (líneas 47--86 de \texttt{workflow.py}) traduce la intención lógica
+(\texttt{style} o \texttt{tactics}) al nodo especializado correspondiente
+(\texttt{style\_latencia}, \texttt{tactics\_escalabilidad}, etc.). Si no existe
+un nodo específico para el atributo detectado, el sistema utiliza el nodo general
+como fallback. Este diseño permite agregar soporte para un nuevo atributo de
+calidad editando únicamente \texttt{config/indices.json}, sin modificar código.
+
+\subsubsection{Design Ledger: trazabilidad de decisiones}
+\label{sssec:design-ledger}
+
+El problema más profundo de la versión anterior era la falta de trazabilidad entre
+decisiones: toda la memoria de una sesión vivía en \texttt{arch\_flow}, un blob
+JSON plano donde cada nueva decisión sobreescribía la anterior. No existía
+vínculo estructural entre el ASR, el estilo que lo satisfacía y las tácticas
+derivadas.
+
+Se implementó el \textbf{Design Ledger}, un árbol de decisiones inmutables donde
+cada decisión referencia explícitamente a la que la originó. La cadena de
+trazabilidad es:
+
+\begin{center}
+\textbf{ASR} $\rightarrow$ \textbf{Estilo} (\texttt{traces\_to} ASR)
+$\rightarrow$ \textbf{Táctica} (\texttt{parents}: estilo + ASR)
+$\rightarrow$ \textbf{Diagrama}
+\end{center}
+
+El Ledger se implementa en el paquete \texttt{ledger/} con cuatro módulos:
+
+\begin{lstlisting}[language=Python,
+  caption={Estructura \texttt{Decision} del Design Ledger},
+  label={lst:decision-type},
+  firstnumber=43]
+# Archivo: back/src/ledger/types.py (lineas 43-59)
+class Decision(TypedDict):
+    id: str
+    kind: str          # "asr", "style", "tactics", "diagram"
+    phase: str
+    iteration: int
+    qa: str            # atributo de calidad
+    parents: list[DecisionRef]  # referencias a decisiones padre
+    payload: dict[str, Any]
+    rationale: str
+    sources: list[dict]
+    status: str        # "active", "superseded", "rejected"
+    superseded_by: Optional[str]
+    rejection_reason: Optional[str]
+    created_at: str
+    created_by_node: str
+\end{lstlisting}
+
+El mecanismo opera en tres capas: (1) el Ledger mismo almacena las decisiones
+con sus referencias; (2) el \texttt{context\_loader} rehidrata el Ledger al
+inicio de cada turno y traduce las decisiones activas a los campos escalares que
+los nodos necesitan (\texttt{current\_asr}, \texttt{selected\_style}, etc.); y
+(3) el \emph{dossier binding} inyecta el ASR activo directamente en los prompts
+de estilo y tácticas, forzando que el campo \texttt{traces\_to\_asr} sea
+obligatorio en cada táctica.
+
+\subsubsection{ASR Write-back y Supersession}
+\label{sssec:supersession}
+
+Para resolver el problema de que el sistema repetía ASRs descartados, se
+implementó un mecanismo de \emph{supersession}: cuando el arquitecto pide refinar
+un ASR, la función \texttt{append\_decision(kind="asr")} marca el ASR anterior
+con \texttt{status: superseded} y almacena una referencia al nuevo. El historial
+es inmutable y monotónico.
+
+Antes de cada generación de ASR, se inyecta un bloque \texttt{PRIOR ASR HISTORY}
+en el prompt (máximo 1500 caracteres) que lista los ASRs previamente descartados.
+Esto permite al LLM evitar regenerar opciones ya rechazadas. En sesiones nuevas,
+donde no existe historial, el prompt permanece idéntico al de la versión anterior,
+garantizando compatibilidad.
 
 
 % ============================================================================
@@ -676,7 +1258,74 @@ Manuel Gomez\par}
 %   - Streaming de respuestas: experiencia de usuario más fluida
 %   - Validación automática de ASRs: verificar coherencia y completitud sin intervención humana
 
-\TODO{Escribir trabajo futuro}
+A lo largo del desarrollo de \archia{} se identificaron líneas de mejora que exceden
+el alcance de este proyecto de grado pero que constituyen oportunidades valiosas
+para iteraciones futuras. Se organizan en tres categorías: optimizaciones de
+rendimiento pendientes, mejoras metodológicas y extensiones funcionales.
+
+\subsection*{Optimizaciones de rendimiento pendientes}
+
+De los siete cuellos de botella identificados en la \Cref{sssec:optimizaciones},
+tres permanecen sin resolver:
+
+La \textbf{paralelización de llamadas LLM} (P1) representa el 60--70\% de la
+latencia total del sistema. Actualmente, cuando el supervisor determina que deben
+ejecutarse múltiples nodos (por ejemplo, ASR seguido de estilo y tácticas), cada
+llamada al LLM se ejecuta secuencialmente. Paralelizar nodos independientes
+mediante \texttt{asyncio.gather} o un ejecutor de hilos reduciría
+significativamente el tiempo total de respuesta.
+
+La implementación de \textbf{streaming al cliente} (P2) permitiría que el usuario
+vea la respuesta a medida que se genera, reduciendo la latencia percibida.
+Actualmente, \texttt{graph.invoke()} bloquea hasta que todos los nodos completan
+su ejecución. LangGraph soporta streaming nativo mediante \texttt{graph.astream()},
+pero integrarlo requiere modificar tanto el backend (endpoints SSE o WebSocket)
+como el frontend (renderizado incremental).
+
+La limitación a \textbf{un solo worker de Uvicorn} (P6) implica que una segunda
+petición queda en cola mientras se procesa la primera, con esperas de 60--80
+segundos. Migrar a Gunicorn con múltiples workers o a un modelo de procesamiento
+basado en colas permitiría atender solicitudes concurrentes.
+
+\subsection*{Mejoras metodológicas}
+
+Los arquitectos de Pragma y el asesor del proyecto identificaron que \archia{} no
+implementa una \textbf{fase de intake guiado}: el sistema permite al usuario
+solicitar ASRs sin validar que haya proporcionado suficiente contexto sobre el
+sistema a diseñar. Implementar \emph{guards} que exijan información mínima antes de
+la primera decisión de diseño (por ejemplo, dominio del sistema, stakeholders,
+restricciones conocidas) mejoraría sustancialmente la calidad de los artefactos
+generados.
+
+\archia{} cubre los pasos 1--4 de ADD 3.0. Extender el soporte a las
+\textbf{iteraciones completas} del método --- incluyendo instanciación de
+elementos arquitectónicos (paso 5), definición de interfaces (paso 6) y
+verificación/refinamiento (paso 7) --- convertiría a la herramienta en un
+asistente de ciclo completo.
+
+La \textbf{validación automática de ASRs} permitiría verificar que los escenarios
+generados cumplan con la estructura de seis partes y contengan métricas medibles
+sin intervención del arquitecto, sirviendo como un mecanismo de control de calidad
+interno antes de presentar el resultado al usuario.
+
+\subsection*{Extensiones funcionales}
+
+El backend multi-tenant desarrollado en NestJS
+(\texttt{archIABack-Negocio}) implementa gestión de organizaciones, proyectos,
+usuarios y preferencias, pero no está integrado con el backend core de agentes.
+Completar esta \textbf{integración como plataforma SaaS} habilitaría la gestión
+de múltiples proyectos por usuario, con contexto técnico persistente y
+preferencias personalizadas de explicación.
+
+La implementación de un \textbf{sistema de proyectos} con carga de documentación
+técnica permitiría al arquitecto subir carpetas completas de documentos de un
+proyecto, proporcionando al sistema un contexto mucho más rico para la generación
+de ASRs y la selección de tácticas.
+
+Finalmente, la \textbf{evaluación a mayor escala} con más arquitectos, más
+dominios de aplicación y métricas cuantitativas formales fortalecería la
+evidencia sobre la utilidad del sistema y permitiría identificar patrones de
+uso y áreas de mejora con mayor rigor estadístico.
 
 
 % ============================================================================
