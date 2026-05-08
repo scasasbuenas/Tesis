@@ -81,17 +81,32 @@
 % se reinicia entre portada, preliminares y cuerpo.
 \usepackage[hidelinks,hypertexnames=false]{hyperref}
 \usepackage{bookmark}
-\usepackage[nameinlink]{cleveref}
+\usepackage[nameinlink,spanish]{cleveref}
+\crefname{section}{sección}{secciones}
+\Crefname{section}{Sección}{Secciones}
+\crefname{subsection}{sección}{secciones}
+\Crefname{subsection}{Sección}{Secciones}
+\crefname{subsubsection}{sección}{secciones}
+\Crefname{subsubsection}{Sección}{Secciones}
+\crefname{table}{tabla}{tablas}
+\Crefname{table}{Tabla}{Tablas}
+\crefname{figure}{figura}{figuras}
+\Crefname{figure}{Figura}{Figuras}
+\crefname{listing}{listado}{listados}
+\Crefname{listing}{Listado}{Listados}
+\crefname{lstlisting}{listado}{listados}
+\Crefname{lstlisting}{Listado}{Listados}
+\crefname{equation}{ecuación}{ecuaciones}
+\Crefname{equation}{Ecuación}{Ecuaciones}
 
 % --- Bibliografía ---
-% TODO: Descomentar cuando exista referencias.bib y biber esté instalado
-% \usepackage[
-%   backend=biber,
-%   style=ieee,
-%   sorting=nyt,
-%   maxbibnames=99
-% ]{biblatex}
-% \addbibresource{referencias.bib}
+\usepackage[
+  backend=biber,
+  style=ieee,
+  sorting=nyt,
+  maxbibnames=99
+]{biblatex}
+\addbibresource{referencias.bib}
 
 % --- Acrónimos ---
 % TODO: Descomentar cuando se instale makeglossaries
@@ -149,7 +164,7 @@ Manuel Gomez\par}
 
 \vspace{2cm}
 
-{\large Director: Dario Correal\par}
+{\large Director: Darío Correal\par}
 
 \vfill
 
@@ -228,7 +243,59 @@ Manuel Gomez\par}
 %   - Limitaciones conocidas: alucinaciones, sesgos, ventana de contexto
 %   - Conexión con el proyecto: por qué IAG es viable para asistencia arquitectónica
 
-\TODO{Escribir subsección IAG}
+La inteligencia artificial generativa (IAG) comprende una familia de modelos
+computacionales cuyo objetivo es producir contenido nuevo --- texto, imágenes,
+código, audio --- a partir de patrones aprendidos durante el entrenamiento sobre
+grandes corpus de datos. A diferencia de los modelos discriminativos, que se
+limitan a clasificar o predecir etiquetas sobre entradas existentes, los modelos
+generativos aprenden una distribución de probabilidad sobre los datos de
+entrenamiento y son capaces de muestrear nuevas instancias coherentes a partir de
+ella~\cite{zhao2023survey}.
+
+La evolución de la IAG en el dominio del procesamiento de lenguaje natural ha
+seguido una trayectoria marcada por incrementos en la escala de los modelos y en
+la sofisticación de sus arquitecturas. Los primeros modelos de lenguaje basados en
+redes neuronales recurrentes (RNN) y sus variantes LSTM demostraron que era posible
+generar texto secuencial coherente, pero estaban limitados por su incapacidad para
+capturar dependencias a larga distancia de forma eficiente. La introducción de la
+arquitectura Transformer por Vaswani et al.~\cite{vaswani2017attention} en 2017
+representó un cambio de paradigma: el mecanismo de autoatención permitió procesar
+secuencias completas en paralelo, eliminando el cuello de botella secuencial de las
+RNN y habilitando el entrenamiento de modelos con miles de millones de parámetros.
+
+A partir de los Transformers, surgieron dos líneas de desarrollo. Por un lado, los
+modelos de tipo \emph{encoder} como BERT, optimizados para tareas de comprensión
+(clasificación, extracción de entidades, respuesta a preguntas). Por otro, los
+modelos de tipo \emph{decoder} como la serie GPT (Generative Pre-trained
+Transformer), optimizados para la generación de texto. Es esta segunda línea la
+que resulta directamente relevante para \archia{}, ya que la generación de ASRs,
+la recomendación de estilos y la selección de tácticas requieren producir texto
+estructurado y técnicamente preciso a partir de descripciones informales del
+usuario.
+
+Las capacidades de la IAG que habilitan un sistema como \archia{} incluyen la
+generación de texto estructurado que sigue formatos específicos (como las seis
+partes de un Quality Attribute Scenario), la comprensión de contexto técnico
+especializado y la capacidad de razonamiento sobre trade-offs entre alternativas
+de diseño. Brown et al.~\cite{brown2020language} demostraron que los modelos de
+gran escala exhiben capacidades emergentes de \emph{few-shot learning}: pueden
+realizar tareas complejas a partir de unos pocos ejemplos incluidos en el prompt,
+sin necesidad de re-entrenamiento.
+
+Sin embargo, la IAG presenta limitaciones bien documentadas que condicionan el
+diseño de cualquier sistema que la utilice. Las \emph{alucinaciones} --- la
+generación de contenido plausible pero factualmente incorrecto --- son
+particularmente problemáticas en dominios técnicos donde la precisión es
+crítica~\cite{zhao2023survey}. La ventana de contexto limitada restringe la
+cantidad de información que el modelo puede considerar simultáneamente. Los sesgos
+heredados de los datos de entrenamiento pueden manifestarse en recomendaciones que
+favorecen ciertas tecnologías o patrones sobre otros sin justificación técnica.
+
+Estas limitaciones motivan dos decisiones de diseño fundamentales en \archia{}: el
+uso de Recuperación Aumentada con Generación (RAG) para fundamentar las respuestas
+en literatura verificable (véase la \Cref{subsec:rag}), y la especialización de
+agentes por tarea para acotar el espacio de generación de cada nodo (véase la
+\Cref{subsec:multi-agente}).
 
 
 % ----------------------------------------------------------------------------
@@ -243,7 +310,106 @@ Manuel Gomez\par}
 %   - Fine-tuning vs. prompting vs. in-context learning
 %   - Temperature, tokens, y cómo afectan la salida
 
-\TODO{Escribir subsección LLM}
+Un modelo de lenguaje de gran escala (LLM, por sus siglas en inglés) es un modelo
+generativo entrenado sobre corpus masivos de texto --- del orden de cientos de
+miles de millones de tokens --- cuya arquitectura le permite capturar patrones
+lingüísticos, conocimiento factual y capacidades de razonamiento que emergen con
+la escala~\cite{zhao2023survey}. Los LLMs constituyen la tecnología subyacente que
+hace posible un sistema como \archia{}.
+
+\subsubsection{La arquitectura Transformer}
+
+La base de todos los LLMs modernos es la arquitectura Transformer, introducida por
+Vaswani et al.~\cite{vaswani2017attention}. Su innovación central es el mecanismo
+de \emph{autoatención} (\emph{self-attention}), que permite a cada token de una
+secuencia calcular una ponderación de relevancia con respecto a todos los demás
+tokens de la misma secuencia. Formalmente, dado un conjunto de vectores de query
+$Q$, key $K$ y value $V$, la atención se calcula como:
+
+\begin{equation}
+\text{Attention}(Q, K, V) = \text{softmax}\left(\frac{QK^T}{\sqrt{d_k}}\right)V
+\label{eq:attention}
+\end{equation}
+
+\noindent donde $d_k$ es la dimensión de los vectores de key. Este mecanismo se
+extiende a \emph{multi-head attention}, donde múltiples funciones de atención
+operan en paralelo sobre proyecciones lineales distintas de los mismos datos,
+capturando diferentes tipos de relaciones (sintácticas, semánticas, posicionales).
+
+El Transformer original consta de un \emph{encoder} (que procesa la entrada
+completa bidireccionalmente) y un \emph{decoder} (que genera la salida
+autorregrésivamente, token por token). Los LLMs generativos como GPT utilizan
+únicamente el decoder, entrenado con el objetivo de predecir el siguiente token
+dada una secuencia de tokens previos.
+
+\subsubsection{Tokenización y ventana de contexto}
+
+Antes de ser procesado por el modelo, el texto se divide en \emph{tokens} ---
+unidades subléxicas que pueden representar palabras completas, fragmentos de
+palabras o caracteres individuales. Los esquemas de tokenización más comunes son
+Byte-Pair Encoding (BPE) y SentencePiece. La cantidad máxima de tokens que un
+modelo puede procesar en una sola invocación se denomina \emph{ventana de contexto}
+y varía según el modelo: GPT-4 soporta hasta 128.000 tokens, mientras que modelos
+más pequeños pueden estar limitados a 4.096 o 8.192 tokens.
+
+La ventana de contexto es una restricción directa para \archia{}: en sesiones
+largas donde se acumulan múltiples ASRs, estilos, tácticas e historial de
+conversación, el texto total puede exceder el límite del modelo. Esto motiva el
+uso de mecanismos de memoria persistente (véase la \Cref{subsec:memoria}) y la
+selección cuidadosa de qué información incluir en cada prompt.
+
+\subsubsection{Estrategias de uso: prompting e in-context learning}
+
+Los LLMs pueden adaptarse a tareas específicas mediante tres estrategias
+principales, ordenadas de menor a mayor costo:
+
+El \emph{prompting} consiste en diseñar instrucciones textuales que guían al modelo
+hacia el comportamiento deseado sin modificar sus parámetros. Esta es la estrategia
+que utiliza \archia{}: cada nodo del grafo contiene un \emph{system prompt} que
+define el rol del agente, el formato de salida esperado y las restricciones que
+debe respetar. Wei et al.~\cite{wei2022chain} demostraron que la inclusión de
+cadenas de razonamiento paso a paso en los prompts (\emph{chain-of-thought
+prompting}) mejora significativamente el desempeño en tareas que requieren
+razonamiento multi-paso, como la selección de tácticas arquitectónicas.
+
+El \emph{in-context learning}, documentado por Brown et al.~\cite{brown2020language},
+permite al modelo aprender patrones a partir de ejemplos incluidos directamente en
+el prompt, sin entrenamiento adicional. \archia{} utiliza esta técnica al incluir
+ejemplos de JSON estructurado en los prompts de tácticas para guiar el formato de
+salida.
+
+El \emph{fine-tuning} implica re-entrenar parcialmente el modelo sobre un dataset
+específico del dominio. Esta estrategia no se utiliza en \archia{} debido al costo
+computacional y a que el prompting combinado con RAG ha demostrado ser suficiente
+para el nivel de especialización requerido.
+
+\subsubsection{Parámetros de generación}
+
+El comportamiento de un LLM durante la generación depende de parámetros
+configurables. El más relevante para \archia{} es la \emph{temperature}, que
+controla la aleatoriedad de la distribución de probabilidad sobre el vocabulario.
+Con \texttt{temperature=0}, el modelo selecciona siempre el token más probable
+(comportamiento determinístico), lo cual es deseable para tareas de clasificación
+y resolución de atributos de calidad. Con valores más altos (0.7--1.0), la salida
+es más diversa pero menos predecible, lo cual puede ser útil para la generación
+creativa de ASRs alternativos.
+
+En \archia{}, el clasificador y el resolver de atributos de calidad operan con
+\texttt{temperature=0} para garantizar consistencia, mientras que los nodos de
+generación de ASRs y tácticas utilizan valores ligeramente más altos para
+permitir variabilidad en las recomendaciones.
+
+\subsubsection{Modelos utilizados en \archia{}}
+
+\archia{} está diseñado como un sistema multi-proveedor, compatible con modelos
+de OpenAI (GPT-4, GPT-4o) a través de su API~\cite{openai2024} y con modelos de
+Azure OpenAI. La selección del modelo se realiza mediante una fábrica
+(\texttt{llm\_factory.py}) que permite cambiar el proveedor sin modificar la
+lógica de los agentes. Bubeck et al.~\cite{bubeck2023sparks} documentaron las
+capacidades avanzadas de razonamiento de GPT-4, incluyendo la comprensión de
+restricciones complejas y la generación de texto que sigue especificaciones
+formales --- capacidades directamente relevantes para la generación de QAS y la
+selección de tácticas.
 
 
 % ----------------------------------------------------------------------------
@@ -258,7 +424,92 @@ Manuel Gomez\par}
 %   - LangGraph como framework de orquestación de agentes LLM
 %   - Conexión: por qué un solo LLM no es suficiente y se necesitan agentes especializados
 
-\TODO{Escribir subsección multi-agente}
+Un agente inteligente es una entidad que percibe su entorno a través de sensores
+y actúa sobre él a través de actuadores, seleccionando acciones que maximizan
+alguna medida de desempeño~\cite{russell2020artificial}. En el contexto de
+sistemas basados en LLMs, un agente es un módulo que recibe un estado (el entorno),
+lo procesa mediante un modelo de lenguaje (la deliberación) y produce una acción
+(la respuesta o modificación del estado) de acuerdo con un objetivo
+definido~\cite{wang2023survey}.
+
+Wooldridge~\cite{wooldridge2009introduction} identifica cuatro propiedades que
+distinguen a un agente de un programa convencional: \emph{autonomía} (opera sin
+intervención directa), \emph{reactividad} (percibe y responde a cambios en el
+entorno), \emph{proactividad} (toma iniciativa orientada a objetivos) y
+\emph{habilidad social} (interactúa con otros agentes). En \archia{}, cada nodo
+del grafo (ASR, estilo, tácticas, diagrama, investigador, evaluador) exhibe estas
+propiedades: opera autónomamente dentro de su turno, reacciona al estado del grafo,
+persigue un objetivo específico (generar un ASR, recomendar un estilo) y se
+comunica con los demás nodos a través del estado compartido.
+
+\subsubsection{Sistemas multi-agente}
+
+Un sistema multi-agente (SMA) es un sistema compuesto por múltiples agentes que
+interactúan entre sí para resolver problemas que exceden la capacidad o el alcance
+de un agente individual~\cite{wooldridge2009introduction}. Los SMAs se caracterizan
+por tres dimensiones de diseño: la \emph{arquitectura de coordinación} (cómo se
+organizan los agentes), la \emph{estrategia de comunicación} (cómo comparten
+información) y la \emph{política de resolución de conflictos} (cómo se manejan
+objetivos contradictorios).
+
+Wang et al.~\cite{wang2023survey} presentan una encuesta exhaustiva sobre agentes
+autónomos basados en LLMs y clasifican las arquitecturas de coordinación en tres
+categorías: \emph{cooperativa} (los agentes colaboran hacia un objetivo común),
+\emph{competitiva} (los agentes compiten y se evalúan mutuamente) y
+\emph{jerárquica} (un agente supervisor coordina a los demás). \archia{} adopta
+una arquitectura jerárquica, conocida como patrón \emph{supervisor-worker}.
+
+\subsubsection{El patrón supervisor-worker}
+
+En el patrón supervisor-worker, un agente supervisor recibe las solicitudes,
+analiza la intención del usuario y delega la ejecución a agentes especializados
+(workers). El supervisor no genera contenido directamente; su responsabilidad es
+la orquestación: decidir qué worker ejecutar, en qué orden, y cuándo consolidar
+los resultados.
+
+Este patrón ofrece varias ventajas para un sistema de asistencia arquitectónica.
+La \emph{especialización} permite que cada worker tenga un prompt optimizado
+para una tarea específica (por ejemplo, el nodo ASR solo genera escenarios de
+calidad, sin contaminar su salida con tácticas o estilos). La
+\emph{componibilidad} permite ejecutar múltiples workers en secuencia para
+solicitudes complejas (por ejemplo, ASR $\rightarrow$ estilo $\rightarrow$
+tácticas). La \emph{mantenibilidad} permite modificar o reemplazar un worker
+sin afectar a los demás.
+
+\subsubsection{LangGraph como framework de orquestación}
+
+LangGraph~\cite{langgraph2024} es un framework de código abierto desarrollado
+por LangChain~\cite{langchain2024} para construir aplicaciones multi-agente
+como grafos de estados. Sus conceptos centrales son:
+
+El \textbf{StateGraph} define una máquina de estados donde cada nodo es una
+función que transforma el estado y cada edge define las transiciones posibles.
+Los \textbf{conditional edges} permiten que las transiciones dependan del estado
+actual, habilitando enrutamiento dinámico. El \textbf{checkpointer} persiste el
+estado del grafo entre invocaciones, permitiendo conversaciones multi-turno con
+memoria.
+
+\archia{} utiliza LangGraph para implementar el patrón supervisor-worker descrito
+anteriormente. El grafo define un flujo que comienza con la clasificación de la
+intención del usuario, pasa por el supervisor que decide el enrutamiento, ejecuta
+uno o más workers especializados, y consolida la respuesta en un nodo unificador
+(véase la \Cref{subsec:grafo-final} para la descripción detallada del grafo).
+
+\subsubsection{Justificación del enfoque multi-agente}
+
+Un solo LLM invocado con un prompt monolítico podría, en principio, generar un
+ASR, recomendar un estilo y seleccionar tácticas en una sola respuesta. Sin
+embargo, esta aproximación presenta problemas documentados: las respuestas tienden
+a ser superficiales cuando el prompt cubre múltiples objetivos, la trazabilidad
+se pierde porque no es posible identificar qué parte de la respuesta corresponde
+a qué fase del proceso, y la calidad se degrada en prompts que exceden cierta
+longitud~\cite{zhao2023survey}.
+
+La descomposición en agentes especializados permite que cada nodo opere con un
+prompt acotado y un objetivo claro, mejorando la calidad de cada artefacto
+individual. Además, el estado compartido del grafo garantiza que las decisiones
+sean coherentes entre fases: el estilo se selecciona con base en el ASR que lo
+precede, y las tácticas se eligen con base en el estilo seleccionado.
 
 
 % ----------------------------------------------------------------------------
@@ -274,7 +525,80 @@ Manuel Gomez\par}
 %   - Métricas de similitud (coseno)
 %   - Conexión: grounding de respuestas en literatura de arquitectura (Bass, Clements, Kazman)
 
-\TODO{Escribir subsección RAG}
+Los LLMs generan texto basándose exclusivamente en los patrones aprendidos durante
+el entrenamiento. Esto significa que su conocimiento es estático (limitado a la
+fecha de corte del entrenamiento), no verificable (no es posible rastrear de dónde
+proviene una afirmación específica) y propenso a \emph{alucinaciones} --- la
+generación de contenido plausible pero factualmente incorrecto. En un sistema de
+asistencia arquitectónica, donde las recomendaciones deben estar fundamentadas en
+metodologías reconocidas como ADD 3.0, estas limitaciones son inaceptables.
+
+La Recuperación Aumentada con Generación (RAG, por sus siglas en inglés) es una
+técnica introducida por Lewis et al.~\cite{lewis2020retrieval} que aborda estas
+limitaciones combinando un componente de recuperación de información con un modelo
+generativo. En lugar de depender únicamente del conocimiento paramétrico del LLM,
+el sistema recupera documentos relevantes de una base de conocimiento externa y los
+incluye como contexto adicional en el prompt, de modo que el modelo genera su
+respuesta condicionada a evidencia concreta.
+
+\subsubsection{Pipeline de RAG}
+
+El pipeline de RAG consta de cuatro fases:
+
+\textbf{Ingestión.} Los documentos fuente (en el caso de \archia{}, libros de
+arquitectura de software como Bass et al.~\cite{bass2021software} y Clements
+et al.~\cite{clements2002evaluating}) se dividen en fragmentos (\emph{chunks}) de
+tamaño controlado, típicamente entre 500 y 1500 tokens. La segmentación debe
+respetar los límites semánticos del texto (párrafos, secciones) para evitar que un
+chunk contenga información truncada o descontextualizada.
+
+\textbf{Embedding.} Cada chunk se transforma en un vector numérico de alta
+dimensión mediante un modelo de embeddings. Estos vectores capturan el significado
+semántico del texto: fragmentos con contenido similar producen vectores cercanos en
+el espacio vectorial. La técnica de representación vectorial de palabras tiene sus
+orígenes en el trabajo de Mikolov et al.~\cite{mikolov2013efficient}, que demostró
+que las relaciones semánticas entre palabras se preservan como operaciones
+algebraicas en el espacio de embeddings.
+
+\textbf{Almacenamiento.} Los vectores se almacenan en una base de datos vectorial
+que permite búsquedas por similitud eficientes. \archia{} utiliza
+ChromaDB~\cite{chromadb2024}, una base de datos vectorial de código abierto
+diseñada específicamente para aplicaciones de IA. ChromaDB soporta filtros de
+metadata, lo cual permite a \archia{} filtrar chunks no solo por similitud
+semántica sino también por atributo de calidad y tipo de contenido (ASR, estilos,
+tácticas).
+
+\textbf{Recuperación y generación.} Ante una consulta del usuario, el sistema
+la convierte en un vector de embedding y busca los $k$ chunks más similares en
+la base vectorial. La similitud se mide típicamente mediante la distancia coseno
+entre vectores. Los chunks recuperados se inyectan como contexto en el prompt del
+LLM, que genera su respuesta condicionada a esta evidencia. Este proceso se
+conoce como \emph{augmented generation}.
+
+\subsubsection{Ventajas del RAG sobre el fine-tuning}
+
+El RAG ofrece ventajas significativas sobre el fine-tuning para el caso de uso de
+\archia{}. La actualización del conocimiento es inmediata: basta con agregar nuevos
+documentos al vectorstore y reconstruirlo, sin necesidad de re-entrenar el modelo.
+La trazabilidad es inherente: cada respuesta puede incluir las fuentes documentales
+que la fundamentan (libro, página, sección). El costo es significativamente menor:
+no requiere GPUs dedicadas ni datasets de entrenamiento curados.
+
+\subsubsection{Limitaciones del RAG básico}
+
+Asai et al.~\cite{asai2023selfrag} identifican limitaciones del RAG en su forma
+básica: la calidad de la respuesta depende críticamente de la calidad de la
+recuperación (si los chunks recuperados no son relevantes, el modelo genera
+respuestas incorrectas con apariencia de estar fundamentadas), y el modelo no
+tiene mecanismos internos para evaluar si la información recuperada es suficiente
+o pertinente.
+
+En \archia{}, estas limitaciones se mitigan mediante la indexación diferenciada
+por atributo de calidad y tipo de contenido (véase la
+\Cref{sssec:rag-indexado}): en lugar de buscar en todo el corpus
+indiscriminadamente, el sistema filtra los chunks relevantes según el atributo
+de calidad detectado (latencia, escalabilidad, disponibilidad) y el tipo de
+artefacto solicitado (ASR, estilos, tácticas).
 
 
 % ----------------------------------------------------------------------------
@@ -289,7 +613,58 @@ Manuel Gomez\par}
 %   - Conexión: cómo ArchIA mantiene el estado del flujo ADD entre turnos
 %     (current_asr, selected_style, tactics_list, memory_text)
 
-\TODO{Escribir subsección memoria}
+Los LLMs procesan cada invocación de forma independiente: no tienen memoria
+intrínseca de interacciones previas. Toda la información que el modelo necesita
+para generar una respuesta debe estar contenida en el prompt de la invocación
+actual. En un sistema conversacional como \archia{}, donde las decisiones
+arquitectónicas se construyen incrementalmente a lo largo de múltiples turnos
+(primero el ASR, luego el estilo, después las tácticas), esta ausencia de memoria
+es un problema fundamental.
+
+Packer et al.~\cite{packer2023memgpt} proponen una analogía entre la gestión de
+memoria en sistemas operativos y la gestión de contexto en sistemas LLM. Así como
+un sistema operativo mantiene una jerarquía de memoria (registros, caché, RAM,
+disco) con diferentes velocidades y capacidades, un sistema conversacional basado
+en LLM necesita mecanismos para decidir qué información mantener en el contexto
+inmediato (la ventana del prompt), qué información almacenar para recuperación
+futura y qué información descartar.
+
+Zhang et al.~\cite{zhang2024survey} clasifican los mecanismos de memoria en
+sistemas basados en agentes LLM en tres categorías:
+
+La \textbf{memoria de corto plazo} corresponde al historial de mensajes del turno
+actual. En \archia{}, esto incluye el campo \texttt{turn\_messages} del estado del
+grafo, que acumula las respuestas de cada nodo ejecutado durante un turno para que
+el unifier pueda consolidarlas.
+
+La \textbf{memoria de trabajo} corresponde a información estructurada que persiste
+entre turnos pero no crece indefinidamente. En \archia{}, los campos
+\texttt{current\_asr}, \texttt{selected\_style}, \texttt{tactics\_struct} y
+\texttt{quality\_attribute} del \texttt{GraphState} cumplen esta función: almacenan
+las decisiones activas de la sesión y se actualizan (no acumulan) cuando el usuario
+refina o reemplaza una decisión.
+
+La \textbf{memoria de largo plazo} corresponde a información que se persiste más
+allá de la sesión activa o que crece con cada interacción. En \archia{}, el campo
+\texttt{memory\_text} acumula un resumen textual de las decisiones tomadas a lo
+largo de la conversación, y el Design Ledger (véase la \Cref{sssec:design-ledger})
+persiste el árbol completo de decisiones en SQLite.
+
+\subsubsection{Checkpointing en LangGraph}
+
+LangGraph implementa la persistencia del estado del grafo mediante un sistema de
+\emph{checkpointing} que guarda el \texttt{GraphState} completo después de cada
+nodo ejecutado. \archia{} utiliza un checkpointer basado en SQLite que permite
+retomar conversaciones interrumpidas y mantener la coherencia del flujo ADD 3.0
+entre sesiones. Cada sesión se identifica por un \texttt{thread\_id} único, y el
+checkpointer almacena el estado completo incluyendo el historial de mensajes, las
+decisiones activas y las banderas de control del flujo.
+
+Esta combinación de memoria estructurada en el estado del grafo con persistencia
+vía checkpointing permite que \archia{} mantenga la coherencia de las decisiones
+arquitectónicas a lo largo de conversaciones que pueden extenderse por múltiples
+turnos y sesiones, sin depender de que el LLM ``recuerde'' interacciones
+anteriores.
 
 
 % ----------------------------------------------------------------------------
@@ -318,7 +693,165 @@ Manuel Gomez\par}
 %   - Conexión explícita: ArchIA asiste en la transición de requisitos informales
 %     a drivers formales dentro de los pasos iniciales de ADD
 
-\TODO{Escribir subsección ADD 3.0}
+Bass, Clements y Kazman~\cite{bass2021software} definen la arquitectura de
+software como ``las estructuras necesarias para razonar sobre el sistema, que
+comprenden elementos de software, las relaciones entre ellos y las propiedades de
+ambos''. La arquitectura no es un artefacto monolítico sino un conjunto de
+decisiones de diseño que determinan cómo un sistema satisface sus requisitos
+funcionales y, de manera crítica, sus requisitos de calidad.
+
+El arquitecto de software es el responsable de tomar estas decisiones, navegando
+un espacio de trade-offs donde mejorar un atributo de calidad (por ejemplo,
+rendimiento) frecuentemente implica sacrificar otro (por ejemplo, modificabilidad).
+La documentación rigurosa de estas decisiones --- qué se decidió, por qué, qué
+alternativas se descartaron y qué trade-offs se aceptaron --- es esencial para la
+comunicación con stakeholders, la evaluación de la arquitectura y el mantenimiento
+del sistema a largo plazo.
+
+\subsubsection{Atributos de calidad}
+
+Los atributos de calidad son propiedades medibles del sistema que determinan qué
+tan bien satisface las necesidades de sus stakeholders, más allá de la
+funcionalidad correcta~\cite{bass2021software}. Los atributos más comúnmente
+considerados en el diseño arquitectónico incluyen:
+
+\begin{table}[H]
+\centering
+\caption{Atributos de calidad relevantes para el diseño arquitectónico}
+\label{tab:quality-attributes}
+\begin{tabularx}{\textwidth}{lX}
+\toprule
+\textbf{Atributo} & \textbf{Descripción} \\
+\midrule
+Disponibilidad & Capacidad del sistema de estar operativo y accesible cuando se requiere. Se mide en porcentaje de uptime (ej. 99.95\%). \\
+Rendimiento & Capacidad de responder dentro de restricciones temporales. Se mide con métricas como latencia (p95, p99) y throughput (transacciones por segundo). \\
+Escalabilidad & Capacidad de manejar incrementos en la carga de trabajo. Puede ser horizontal (más instancias) o vertical (más recursos por instancia). \\
+Seguridad & Capacidad de proteger datos y servicios contra accesos no autorizados, ataques y vulnerabilidades. \\
+Modificabilidad & Facilidad con la que el sistema puede ser cambiado. Incluye el costo del cambio en tiempo, esfuerzo y riesgo de defectos. \\
+Confiabilidad & Capacidad de funcionar correctamente bajo condiciones especificadas durante un período de tiempo. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Estos atributos no se expresan de forma aislada; se operacionalizan mediante
+\emph{Quality Attribute Scenarios} (QAS), que proporcionan una forma concreta,
+medible y verificable de especificar requisitos de calidad.
+
+\subsubsection{Quality Attribute Scenarios (QAS)}
+
+Un Quality Attribute Scenario es una especificación estructurada de un requisito
+de calidad que consta de seis partes canónicas~\cite{bass2021software}:
+
+\begin{enumerate}
+\item \textbf{Source} (Fuente): la entidad que genera el estímulo (un usuario,
+un sistema externo, un atacante, un operador).
+\item \textbf{Stimulus} (Estímulo): el evento o condición que llega al sistema
+(una solicitud, una falla, un pico de tráfico, un intento de intrusión).
+\item \textbf{Environment} (Entorno): las condiciones bajo las cuales ocurre el
+estímulo (operación normal, carga pico, modo degradado, una sola región).
+\item \textbf{Artifact} (Artefacto): la parte del sistema que recibe el estímulo
+(un servicio, un módulo, la base de datos, la API).
+\item \textbf{Response} (Respuesta): lo que el sistema debe hacer ante el estímulo
+(procesar la solicitud, activar un failover, escalar horizontalmente).
+\item \textbf{Response Measure} (Medida de respuesta): cómo se verifica que la
+respuesta fue exitosa, expresada con métricas concretas (p95 $<$ 200~ms, error
+rate $<$ 0.5\%, uptime $\geq$ 99.95\%, RTO $\leq$ 15~min).
+\end{enumerate}
+
+Un QAS que cumple con esta estructura se denomina \emph{Architecture Significant
+Requirement} (ASR) cuando su satisfacción requiere una decisión de diseño
+arquitectónico --- es decir, no puede resolverse simplemente con una modificación
+local del código~\cite{cervantes2016designing}. No todo escenario de calidad es un
+ASR: los ASRs son los escenarios más críticos y significativos que actúan como
+\emph{drivers} del diseño arquitectónico.
+
+\subsubsection{Attribute-Driven Design 3.0 (ADD 3.0)}
+
+ADD es un método de diseño arquitectónico desarrollado por el Software Engineering
+Institute (SEI) de Carnegie Mellon University. La versión original fue documentada
+por Wojcik et al.~\cite{wojcik2006add}, y la versión 3.0 fue formalizada por
+Cervantes y Kazman~\cite{cervantes2016designing} como un proceso iterativo de
+siete pasos:
+
+\begin{enumerate}
+\item \textbf{Revisar entradas:} recopilar los drivers arquitectónicos
+(restricciones, concerns de calidad, requisitos funcionales significativos). El
+arquitecto identifica los ASRs que actuarán como guía del diseño.
+
+\item \textbf{Establecer el objetivo de la iteración:} seleccionar qué driver o
+conjunto de drivers se abordará en esta iteración. ADD 3.0 es iterativo: cada
+ciclo refina la arquitectura para satisfacer un subconjunto de drivers.
+
+\item \textbf{Elegir el elemento del sistema a descomponer:} identificar qué
+componente o subsistema será el foco de diseño en esta iteración.
+
+\item \textbf{Elegir conceptos de diseño:} seleccionar los estilos
+arquitectónicos, patrones de diseño y tácticas que satisfarán los drivers
+seleccionados. Este paso implica evaluar alternativas y documentar los trade-offs
+de cada decisión.
+
+\item \textbf{Instanciar elementos arquitectónicos:} concretar los conceptos de
+diseño en elementos específicos (servicios, módulos, capas, colas, cachés) con
+responsabilidades definidas.
+
+\item \textbf{Definir interfaces:} especificar cómo se comunican los elementos
+instanciados (APIs, contratos, protocolos, formatos de datos).
+
+\item \textbf{Verificar y refinar:} evaluar si las decisiones tomadas satisfacen
+los drivers de la iteración y refinar el diseño en consecuencia.
+\end{enumerate}
+
+\subsubsection{Estilos arquitectónicos}
+
+Un estilo arquitectónico es un conjunto de decisiones de diseño recurrentes que
+se aplican a una familia de sistemas con características similares. Cada estilo
+define una topología de componentes y conectores, restricciones sobre su
+composición y los atributos de calidad que favorece o
+penaliza~\cite{bass2021software}. Los estilos más comúnmente considerados en el
+diseño incluyen: capas (\emph{layered}), cliente-servidor, microservicios, basado
+en eventos (\emph{event-driven}), pipes and filters, y broker.
+
+La selección de un estilo no es independiente de los ASRs: un sistema con
+requisitos estrictos de escalabilidad se beneficiará de microservicios, mientras
+que un sistema con requisitos de consistencia fuerte puede favorecer una
+arquitectura monolítica o de capas. Esta relación entre ASR y estilo es
+precisamente lo que \archia{} busca hacer explícita y trazable.
+
+\subsubsection{Tácticas de diseño}
+
+Una táctica de diseño es una decisión de diseño de granularidad fina que influye
+directamente en la respuesta de un atributo de calidad~\cite{bass2021software}.
+Las tácticas se organizan por el atributo de calidad que buscan satisfacer:
+tácticas de rendimiento (gestión de recursos, introducción de concurrencia, caché),
+tácticas de disponibilidad (detección de fallas, recuperación, redundancia
+activa), tácticas de modificabilidad (encapsulamiento, uso de intermediarios,
+aplazamiento de binding), entre otras.
+
+A diferencia de los estilos, que definen la estructura global del sistema, las
+tácticas son decisiones puntuales que se componen dentro de un estilo. Un mismo
+estilo puede implementarse con diferentes combinaciones de tácticas según los
+ASRs específicos del sistema.
+
+\subsubsection{Alcance de \archia{} dentro de ADD 3.0}
+
+\archia{} asiste al arquitecto en los \textbf{pasos 1 a 4} de ADD 3.0:
+formalización de los drivers arquitectónicos (paso 1), selección del atributo de
+calidad prioritario (paso 2), y elección de conceptos de diseño --- estilos y
+tácticas --- que satisfagan los ASRs identificados (paso 4). El paso 3 (elección
+del elemento a descomponer) se aborda implícitamente cuando el usuario especifica
+el módulo o servicio sobre el cual generar el ASR.
+
+Los pasos 5 a 7 (instanciación de elementos, definición de interfaces y
+verificación/refinamiento) quedan fuera del alcance actual del sistema y se
+identifican como trabajo futuro (véase la \Cref{sec:trabajo-futuro}). La
+generación de diagramas de alto nivel complementa los pasos cubiertos al
+proporcionar una visualización de las decisiones tomadas, pero no constituye
+una instanciación formal de elementos arquitectónicos.
+
+Esta delimitación es deliberada: el valor de \archia{} reside en la
+\emph{formalización} de las fases iniciales de ADD 3.0, donde la brecha entre
+lo que el arquitecto sabe informalmente y la expresión estructurada de esos
+conocimientos como drivers formales es más pronunciada.
 
 
 % ============================================================================
@@ -1373,23 +1906,9 @@ uso y áreas de mejora con mayor rigor estadístico.
 % REFERENCIAS
 % ============================================================================
 \newpage
-% \printbibliography[title=Referencias]  % Descomentar con biblatex
 
-% Placeholder temporal — eliminar cuando se use biblatex
-\section*{Referencias}
-\label{sec:referencias}
-
-\TODO{Migrar referencias a archivo .bib y usar biblatex}
-
-% Referencias clave a incluir:
-% - Bass, L., Clements, P., & Kazman, R. (2021). Software Architecture in Practice (4th ed.). Addison-Wesley.
-% - Cervantes, H., & Kazman, R. (2016). Designing Software Architectures: A Practical Approach. Addison-Wesley.
-% - Lewis, P., et al. (2020). Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks. NeurIPS.
-% - Wooldridge, M. (2009). An Introduction to MultiAgent Systems (2nd ed.). Wiley.
-% - Russell, S., & Norvig, P. (2020). Artificial Intelligence: A Modern Approach (4th ed.). Pearson.
-% - Vaswani, A., et al. (2017). Attention Is All You Need. NeurIPS.
-% - LangGraph documentation: https://langchain-ai.github.io/langgraph/
-% - ChromaDB documentation: https://docs.trychroma.com/
+\nocite{*}
+\printbibliography[title=Referencias]
 
 
 \end{document}
